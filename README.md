@@ -89,7 +89,7 @@ Options:
 | Flag | Default | Description |
 |---|---|---|
 | `--negative TEXT` | none | Negative prompt |
-| `--seed N` | random | Reproducible seed (printed) |
+| `--seed N` | -1 | Reproducible seed (`-1` = random) |
 | `--steps N` | 25 | Denoising steps |
 | `--guidance F` | 7.5 | Classifier-free guidance scale |
 | `--scheduler {pndm,lcm}` | pndm | Scheduler (see below) |
@@ -146,6 +146,19 @@ Then open <http://127.0.0.1:8000>.
 The server is standard-library only and binds to `127.0.0.1` (localhost).
 The model is loaded once on the first request and reused; generation requests
 are serialized, so only one job uses the GPU at a time.
+
+## Seed
+
+| Value | Behavior |
+|---|---|
+| `-1` | Random seed (default) |
+| `>= 0` | Deterministic generation |
+
+Same prompt + same settings + same non-negative seed will always produce the same image.
+
+## Negative Prompt
+
+A negative prompt guides the model away from undesired qualities (e.g. `"blurry, low quality"`).
 
 ## Reproducing an image
 

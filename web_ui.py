@@ -109,9 +109,9 @@ def validate_payload(payload):
         raise ValueError(f"prompt too long (maximum {MAX_PROMPT_LEN} characters)")
     prompt = prompt.strip()
 
-    negative = payload.get("negative") or ""
+    negative = payload.get("negative_prompt") or payload.get("negative") or ""
     if not isinstance(negative, str):
-        raise ValueError("negative must be a string")
+        raise ValueError("negative_prompt must be a string")
     negative = negative.strip()
 
     steps = _as_int(payload.get("steps", 25), "steps", 1, MAX_STEPS)
@@ -147,14 +147,18 @@ def validate_payload(payload):
 
     seed = payload.get("seed")
     if seed is None or seed == "":
-        seed = None
+        seed = -1
     else:
         if isinstance(seed, bool):
-            raise ValueError("seed must be an integer or blank")
+            raise ValueError("seed must be an integer >= -1")
+        if isinstance(seed, float):
+            raise ValueError("seed must be an integer >= -1")
         try:
             seed = int(seed)
         except (TypeError, ValueError):
-            raise ValueError("seed must be an integer or blank") from None
+            raise ValueError("seed must be an integer >= -1") from None
+    if seed < -1:
+        raise ValueError("seed must be >= -1")
 
     return {
         "prompt": prompt,
@@ -266,7 +270,7 @@ class Handler(BaseHTTPRequestHandler):
             t0 = time.perf_counter()
             images = generate.generate_images(
                 params["prompt"],
-                negative=params["negative"],
+                negative_prompt=params["negative"],
                 steps=steps,
                 guidance=params["guidance"],
                 width=params["width"],

@@ -69,12 +69,12 @@ function readPayload() {
   const seedText = INPUTS.seed.value.trim();
   return {
     prompt: INPUTS.prompt.value.trim(),
-    negative: INPUTS.negative.value.trim(),
+    negative_prompt: INPUTS.negative.value.trim(),
     steps: parseInt(INPUTS.steps.value, 10),
     guidance: parseFloat(INPUTS.guidance.value),
     width: parseInt(INPUTS.width.value, 10),
     height: parseInt(INPUTS.height.value, 10),
-    seed: seedText === "" ? null : parseInt(seedText, 10),
+    seed: seedText === "" ? -1 : parseInt(seedText, 10),
     count: parseInt(INPUTS.count.value, 10),
     scheduler: INPUTS.scheduler.value,
     preset: INPUTS.preset.value || null,

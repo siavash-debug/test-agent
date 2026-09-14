@@ -156,8 +156,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prompt", dest="prompt_option", default=None,
                         help="text prompt (alternative to the positional form)")
     parser.add_argument("--negative", default=None, help="negative prompt")
-    parser.add_argument("--seed", type=int, default=None,
-                        help="integer seed (default: random, printed)")
+    parser.add_argument("--seed", type=int, default=-1,
+                        help="integer seed (-1 = random, default)")
     parser.add_argument("--steps", type=positive_int, default=25,
                         help="denoising steps")
     parser.add_argument("--guidance", type=positive_float, default=7.5,
@@ -174,6 +174,9 @@ def parse_args() -> argparse.Namespace:
                         help="generation preset (overrides scheduler and steps)")
 
     args = parser.parse_args()
+
+    if args.seed < -1:
+        parser.error("seed must be >= -1")
 
     # Accept the prompt either positionally or as --prompt, but not both, then
     # normalize to a single `prompt` attribute for the rest of the program.
@@ -275,10 +278,10 @@ def build_png_metadata(prompt: str, negative: str | None, seed: int, steps: int,
     return meta
 
 
-def generate_images(prompt: str, *, negative: str | None = None,
+def generate_images(prompt: str, *, negative_prompt: str = "",
                      steps: int = 25, guidance: float = 7.5,
                      width: int = 512, height: int = 512,
-                     seed: int | None = None, count: int = 1,
+                     seed: int = -1, count: int = 1,
                      device: str | None = None,
                      pipe: StableDiffusionPipeline | None = None,
                      scheduler: str = "pndm",
@@ -287,7 +290,7 @@ def generate_images(prompt: str, *, negative: str | None = None,
     OUTPUT_DIR with a unique timestamped filename and embedded PNG metadata.
 
     Seeds advance by one per image, starting from `seed` (or a random base
-    seed when None). `pipe` may be an already loaded pipeline (the Web UI
+    seed when seed is -1). `pipe` may be an already loaded pipeline (the Web UI
     reuses it); when None the model is loaded here once. `device` selects the
     torch generator / CUDA bookkeeping and defaults to auto-detection.
 
@@ -303,7 +306,7 @@ def generate_images(prompt: str, *, negative: str | None = None,
     elif device is None:
         device = pick_device()
 
-    base_seed = seed if seed is not None else secrets.randbelow(2**32)
+    base_seed = secrets.randbelow(2**32) if seed == -1 else seed
     images: list[dict] = []
 
     if scheduler not in SCHEDULERS:
@@ -325,7 +328,7 @@ def generate_images(prompt: str, *, negative: str | None = None,
         for i in range(count):
             current_seed = base_seed + i
             generator = torch.Generator(device=device).manual_seed(current_seed)
-            metadata = build_png_metadata(prompt, negative, current_seed, steps,
+            metadata = build_png_metadata(prompt, negative_prompt, current_seed, steps,
                                              guidance, width, height, scheduler,
                                              preset=preset)
 
@@ -333,7 +336,7 @@ def generate_images(prompt: str, *, negative: str | None = None,
             try:
                 result = pipe(
                     prompt=prompt,
-                    negative_prompt=negative,
+                    negative_prompt=negative_prompt,
                     num_inference_steps=steps,
                     guidance_scale=guidance,
                     height=height,
@@ -394,7 +397,7 @@ def main() -> None:
 
     images = generate_images(
         args.prompt,
-        negative=args.negative,
+        negative_prompt=args.negative or "",
         steps=steps,
         guidance=args.guidance,
         width=args.width,
