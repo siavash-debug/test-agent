@@ -295,8 +295,8 @@ class Handler(BaseHTTPRequestHandler):
                     "negative_prompt": params["negative"],
                     "seed": params["seed"],
                     "preset": params.get("preset"),
-                    "scheduler": params["scheduler"],
-                    "steps": params["steps"],
+                    "scheduler": scheduler,
+                    "steps": steps,
                     "timestamp": time.time(),
                 })
                 if len(_history) > MAX_HISTORY:
