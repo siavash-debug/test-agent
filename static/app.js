@@ -11,6 +11,7 @@ const INPUTS = {
   height: $("height"),
   seed: $("seed"),
   count: $("count"),
+  scheduler: $("scheduler"),
 };
 
 const statusEl = $("status");
@@ -21,6 +22,10 @@ const historyEl = $("history");
 const historyCountEl = $("history-count");
 const historyEmptyEl = $("history-empty");
 const button = $("generate");
+const warningEl = document.createElement("div");
+warningEl.className = "warning";
+warningEl.hidden = true;
+previewEl.parentElement.insertBefore(warningEl, previewEl.nextSibling);
 
 const BUTTON_LABEL = "Generate";
 let busy = false;              // single in-flight request guard
@@ -43,6 +48,16 @@ function clearError() {
   errorEl.hidden = true;
 }
 
+function showWarning(message) {
+  warningEl.textContent = message;
+  warningEl.hidden = false;
+}
+
+function clearWarning() {
+  warningEl.textContent = "";
+  warningEl.hidden = true;
+}
+
 function readPayload() {
   const seedText = INPUTS.seed.value.trim();
   return {
@@ -54,6 +69,7 @@ function readPayload() {
     height: parseInt(INPUTS.height.value, 10),
     seed: seedText === "" ? null : parseInt(seedText, 10),
     count: parseInt(INPUTS.count.value, 10),
+    scheduler: INPUTS.scheduler.value,
   };
 }
 
@@ -101,6 +117,7 @@ function renderPreview(image, settings, totalTime) {
     metaChip("size", settings.width + "x" + settings.height),
     metaChip("steps", String(settings.steps)),
     metaChip("guidance", String(settings.guidance)),
+    metaChip("scheduler", String(settings.scheduler)),
   );
 
   previewEl.append(img, meta, link);
@@ -154,7 +171,13 @@ async function generate() {
   }
 
   clearError();
+  clearWarning();
   infoEl.textContent = "";
+
+  if (payload.scheduler === "lcm" && payload.steps < 8) {
+    showWarning("LCM with fewer than 8 steps may reduce image quality. 8 steps is recommended.");
+  }
+
   setBusy(true);
   setStatus("Generating...", "working");
 

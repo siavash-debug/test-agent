@@ -21,6 +21,8 @@ Optional flags:
                       the images can be reproduced later)
     --steps N         denoising steps (default 25)
     --guidance F      classifier-free guidance scale (default 7.5)
+    --scheduler {pndm,lcm}  scheduler (default: pndm; lcm is faster but
+                      may reduce quality below 8 steps)
     --width N         image width in pixels (default 512). Must be 64-768 and
                       divisible by 8 (512, 640, 768, ...).
     --height N        image height in pixels (default 512). Same rules as --width.
@@ -38,7 +40,7 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, LCMScheduler
 from PIL.PngImagePlugin import PngInfo
 
 ROOT = Path(__file__).resolve().parent
@@ -47,6 +49,10 @@ OUTPUT_DIR = ROOT / "outputs"
 
 # Model identity, recorded in every PNG so an image is traceable to its weights.
 MODEL_NAME = "stable-diffusion-v1-5 (fp16)"
+
+# Supported schedulers. PNDM is the default; LCM provides faster inference
+# at the cost of potential quality tradeoffs at very low step counts.
+SCHEDULERS = ("pndm", "lcm")
 
 # Image dimension rules. The VAE downsamples by 8, so dimensions that are not
 # multiples of 8 make diffusers reject the request outright. 768 is the tested
@@ -111,6 +117,16 @@ def positive_float(text: str) -> float:
     return value
 
 
+def scheduler_choice(text: str) -> str:
+    """argparse type: only supported scheduler names."""
+    value = text.lower()
+    if value not in SCHEDULERS:
+        raise argparse.ArgumentTypeError(
+            f"must be one of {', '.join(SCHEDULERS)} (got '{text}')"
+        )
+    return value
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Local text-to-image engine: TEXT PROMPT -> SD 1.5 -> PNG.",
@@ -133,6 +149,8 @@ def parse_args() -> argparse.Namespace:
                         help=f"image height in pixels (multiple of {DIM_STEP})")
     parser.add_argument("--count", type=positive_int, default=1,
                         help="number of images from the same prompt")
+    parser.add_argument("--scheduler", type=scheduler_choice, default="pndm",
+                        help="scheduler: pndm (default) or lcm")
 
     args = parser.parse_args()
 
@@ -214,7 +232,8 @@ def unique_output_path() -> Path:
 
 
 def build_png_metadata(prompt: str, negative: str | None, seed: int, steps: int,
-                       guidance: float, width: int, height: int) -> PngInfo:
+                       guidance: float, width: int, height: int,
+                       scheduler: str = "pndm") -> PngInfo:
     """Metadata embedded directly in the PNG (no sidecar file).
 
     Storing the full recipe makes any image reproducible from the file alone.
@@ -228,15 +247,17 @@ def build_png_metadata(prompt: str, negative: str | None, seed: int, steps: int,
     meta.add_text("width", str(width))
     meta.add_text("height", str(height))
     meta.add_text("model", MODEL_NAME)
+    meta.add_text("scheduler", scheduler)
     return meta
 
 
 def generate_images(prompt: str, *, negative: str | None = None,
-                    steps: int = 25, guidance: float = 7.5,
-                    width: int = 512, height: int = 512,
-                    seed: int | None = None, count: int = 1,
-                    device: str | None = None,
-                    pipe: StableDiffusionPipeline | None = None) -> list[dict]:
+                     steps: int = 25, guidance: float = 7.5,
+                     width: int = 512, height: int = 512,
+                     seed: int | None = None, count: int = 1,
+                     device: str | None = None,
+                     pipe: StableDiffusionPipeline | None = None,
+                     scheduler: str = "pndm") -> list[dict]:
     """Generate `count` images sequentially from `prompt`, saving each to
     OUTPUT_DIR with a unique timestamped filename and embedded PNG metadata.
 
@@ -259,43 +280,61 @@ def generate_images(prompt: str, *, negative: str | None = None,
 
     base_seed = seed if seed is not None else secrets.randbelow(2**32)
     images: list[dict] = []
-    for i in range(count):
-        current_seed = base_seed + i
-        generator = torch.Generator(device=device).manual_seed(current_seed)
-        metadata = build_png_metadata(prompt, negative, current_seed, steps,
-                                      guidance, width, height)
 
-        t1 = time.perf_counter()
-        try:
-            result = pipe(
-                prompt=prompt,
-                negative_prompt=negative,
-                num_inference_steps=steps,
-                guidance_scale=guidance,
-                height=height,
-                width=width,
-                generator=generator,
-            )
-        except torch.cuda.OutOfMemoryError as exc:
-            # Free the failed attempt's blocks before reporting, so the next
-            # (smaller) request has the whole card available.
+    if scheduler not in SCHEDULERS:
+        raise ValueError(f"unknown scheduler '{scheduler}'")
+
+    original_scheduler = pipe.scheduler
+    if scheduler == "lcm":
+        pipe.scheduler = LCMScheduler(
+            num_train_timesteps=1000,
+            beta_start=0.00085,
+            beta_end=0.012,
+            beta_schedule="scaled_linear",
+            clip_sample=False,
+            steps_offset=0,
+        )
+        print(f"[generate] scheduler: lcm", flush=True)
+
+    try:
+        for i in range(count):
+            current_seed = base_seed + i
+            generator = torch.Generator(device=device).manual_seed(current_seed)
+            metadata = build_png_metadata(prompt, negative, current_seed, steps,
+                                             guidance, width, height, scheduler)
+
+            t1 = time.perf_counter()
+            try:
+                result = pipe(
+                    prompt=prompt,
+                    negative_prompt=negative,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance,
+                    height=height,
+                    width=width,
+                    generator=generator,
+                )
+            except torch.cuda.OutOfMemoryError as exc:
+                if device == "cuda":
+                    torch.cuda.empty_cache()
+                raise RuntimeError(out_of_memory_message(width, height, steps)) from exc
             if device == "cuda":
-                torch.cuda.empty_cache()
-            raise RuntimeError(out_of_memory_message(width, height, steps)) from exc
-        if device == "cuda":
-            torch.cuda.synchronize()
-        t_gen = time.perf_counter() - t1
+                torch.cuda.synchronize()
+            t_gen = time.perf_counter() - t1
 
-        out_path = unique_output_path()
-        image = result.images[0]
-        image.save(out_path, pnginfo=metadata)
-        images.append({"filename": out_path.name, "seed": current_seed, "time": t_gen})
+            out_path = unique_output_path()
+            image = result.images[0]
+            image.save(out_path, pnginfo=metadata)
+            images.append({"filename": out_path.name, "seed": current_seed, "time": t_gen})
 
-        # Sequential: keep one image in memory at a time so peak VRAM stays
-        # low. The pipeline itself stays loaded for the next image. The caching
-        # allocator reuses these blocks, so no empty_cache() is needed here -
-        # releasing to the driver every step would only add overhead.
-        del image, result
+            del image, result
+
+            # Sequential: keep one image in memory at a time so peak VRAM stays
+            # low. The pipeline itself stays loaded for the next image. The caching
+            # allocator reuses these blocks, so no empty_cache() is needed here -
+            # releasing to the driver every step would only add overhead.
+    finally:
+        pipe.scheduler = original_scheduler
 
     return images
 
@@ -330,6 +369,7 @@ def main() -> None:
         count=args.count,
         device=device,
         pipe=pipe,
+        scheduler=args.scheduler,
     )
 
     gen_times = [im["time"] for im in images]
@@ -338,6 +378,7 @@ def main() -> None:
 
     print(f"[prompt] {args.prompt}")
     print(f"[negative] {args.negative if args.negative else '(none)'}")
+    print(f"[scheduler] {args.scheduler}")
     if args.count == 1:
         print(f"[seed] {seeds[0]}")
     else:

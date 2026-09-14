@@ -1,4 +1,4 @@
-# test-agent v0.1
+# test-agent v0.2
 
 A minimal, fully local **Text-to-Image** engine. A text prompt goes in, a PNG
 file comes out.
@@ -92,14 +92,30 @@ Options:
 | `--seed N` | random | Reproducible seed (printed) |
 | `--steps N` | 25 | Denoising steps |
 | `--guidance F` | 7.5 | Classifier-free guidance scale |
+| `--scheduler {pndm,lcm}` | pndm | Scheduler (see below) |
 | `--width N` | 512 | Multiple of 8, 64–768 |
 | `--height N` | 512 | Multiple of 8, 64–768 |
 | `--count N` | 1 | Images from one prompt; seeds advance by 1 |
 
+### Scheduler
+
+| Value | Description |
+|---|---|
+| `pndm` | Default. Standard PNDM scheduler. |
+| `lcm` | Optional fast mode using LCMScheduler with standard SD 1.5 weights. |
+
+**LCM notes:**
+
+- Uses the standard SD 1.5 fp16 weights via `LCMScheduler` — this is **not** an LCM-distilled model.
+- No additional model download is required.
+- Benchmark on GTX 1060 6 GB: ~7.75 s/image at 8 steps vs ~23.6 s/image for PNDM 25 steps (~3× faster).
+- **8 steps is recommended.** Fewer than 8 steps may reduce image quality or introduce artifacts.
+- Peak VRAM remains ~2938 MiB.
+
 Example:
 
 ```powershell
-python generate.py "a futuristic city at sunset" --negative "blurry, low quality" --seed 42 --steps 25 --count 2
+python generate.py "a futuristic city at sunset" --negative "blurry, low quality" --seed 42 --steps 8 --scheduler lcm --count 2
 ```
 
 Images are written to `outputs/` as timestamped PNGs.
@@ -121,7 +137,7 @@ are serialized, so only one job uses the GPU at a time.
 Every PNG embeds its own recipe as PNG text metadata:
 
 `prompt`, `negative_prompt`, `seed`, `steps`, `guidance_scale`, `width`,
-`height`, `model`.
+`height`, `model`, `scheduler`.
 
 No sidecar files are needed. To read the metadata:
 

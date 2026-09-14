@@ -130,6 +130,13 @@ def validate_payload(payload):
     height = _as_dimension(payload.get("height", 512), "height", MAX_HEIGHT)
     count = _as_int(payload.get("count", 1), "count", 1, MAX_COUNT)
 
+    scheduler = payload.get("scheduler", "pndm")
+    if not isinstance(scheduler, str):
+        raise ValueError("scheduler must be a string")
+    scheduler = scheduler.lower()
+    if scheduler not in ("pndm", "lcm"):
+        raise ValueError("scheduler must be 'pndm' or 'lcm'")
+
     seed = payload.get("seed")
     if seed is None or seed == "":
         seed = None
@@ -150,6 +157,7 @@ def validate_payload(payload):
         "height": height,
         "seed": seed,
         "count": count,
+        "scheduler": scheduler,
     }
 
 
@@ -252,6 +260,7 @@ class Handler(BaseHTTPRequestHandler):
                 count=params["count"],
                 device=device,
                 pipe=pipe,
+                scheduler=params["scheduler"],
             )
             total_time = round(time.perf_counter() - t0, 2)
             self._send_json(200, {
