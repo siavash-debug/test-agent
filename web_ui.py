@@ -26,6 +26,7 @@ PORT = 8000
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 OUTPUT_DIR = ROOT / "outputs"
+HISTORY_FILE = OUTPUT_DIR / "history.json"
 
 MIME_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -48,6 +49,28 @@ _pipe_lock = threading.Lock()   # guards pipeline initialization
 _gen_lock = threading.Lock()    # allows only one generation job at a time
 MAX_HISTORY = 20
 _history: list[dict] = []   # session-only, newest first
+
+
+def _load_history():
+    """Load history from disk. Returns empty list if missing/corrupt."""
+    if not HISTORY_FILE.is_file():
+        return []
+    try:
+        data = json.loads(HISTORY_FILE.read_text())
+        if isinstance(data, list):
+            return data
+        return []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_history():
+    """Persist history to disk. Best-effort — never raises."""
+    try:
+        HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        HISTORY_FILE.write_text(json.dumps(_history))
+    except OSError:
+        pass
 
 
 def get_pipeline():
@@ -301,6 +324,7 @@ class Handler(BaseHTTPRequestHandler):
                 })
                 if len(_history) > MAX_HISTORY:
                     _history.pop()
+                _save_history()
             self._send_json(200, {
                 "success": True,
                 "device": device,
@@ -361,6 +385,8 @@ def main():
     except OSError as exc:
         print(f"[webui] could not bind {HOST}:{PORT} - {exc}")
         raise SystemExit(1) from exc
+    global _history
+    _history = _load_history()
     print("Local Text-to-Image UI", flush=True)
     print(f"http://{HOST}:{PORT}", flush=True)
     print(f"[webui] device: {generate.pick_device()}", flush=True)
