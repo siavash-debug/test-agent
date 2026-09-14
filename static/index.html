@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Text-to-Image</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Local&nbsp;Text-to-Image</h1>
+    <span id="status" class="status ready">Ready</span>
+  </header>
+
+  <main>
+    <section class="controls">
+      <label for="prompt">Prompt
+        <textarea id="prompt" rows="3">a futuristic city at sunset</textarea>
+      </label>
+
+      <label for="negative">Negative prompt
+        <textarea id="negative" rows="2">blurry, low quality, distorted, text, watermark</textarea>
+      </label>
+
+      <div class="row">
+        <label for="steps">Steps
+          <input id="steps" type="number" min="1" max="50" value="25">
+        </label>
+        <label for="guidance">Guidance
+          <input id="guidance" type="number" min="0.1" max="50" step="0.1" value="7.5">
+        </label>
+      </div>
+
+      <div class="row">
+        <label for="width">Width
+          <input id="width" type="number" min="64" max="768" step="8" value="512">
+        </label>
+        <label for="height">Height
+          <input id="height" type="number" min="64" max="768" step="8" value="512">
+        </label>
+      </div>
+
+      <div class="row">
+        <label for="seed">Seed (blank = random)
+          <input id="seed" type="number" placeholder="random">
+        </label>
+        <label for="count">Count
+          <input id="count" type="number" min="1" max="8" value="1">
+        </label>
+      </div>
+
+      <button id="generate" type="button">Generate</button>
+    </section>
+
+    <section class="output" aria-label="Generation output">
+      <div id="preview" class="preview empty">
+        <p class="placeholder">No image yet — press Generate.</p>
+      </div>
+      <div id="result-info" class="result-info"></div>
+      <div id="error" class="error" role="alert" hidden></div>
+    </section>
+
+    <section class="history" aria-label="Session history">
+      <h2>History <span class="history-count" id="history-count">0</span></h2>
+      <div id="history" class="history-grid">
+        <p class="placeholder" id="history-empty">Images generated in this session will appear here.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

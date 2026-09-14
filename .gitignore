@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+
+# Python bytecode / caches
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Generated images
+outputs/
+
+# Downloaded model weights (re-create with download_model.py)
+models/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

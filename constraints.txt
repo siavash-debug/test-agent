@@ -1,0 +1,2 @@
+# Pin: protect the installed GPU build from any resolution change.
+torch==2.7.1+cu118
