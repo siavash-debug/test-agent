@@ -136,7 +136,6 @@ function renderHistory() {
   historyCountEl.textContent = String(history.length);
   historyEmptyEl.hidden = history.length > 0;
 
-  // Build each entry once: plain <img> + seed label (never innerHTML input).
   for (const item of history) {
     if (item.el) continue;
     const figure = document.createElement("figure");
@@ -147,10 +146,36 @@ function renderHistory() {
     img.alt = "History image (seed " + item.seed + ")";
     img.loading = "lazy";
 
-    const caption = document.createElement("figcaption");
-    caption.textContent = "seed " + item.seed;
+    const info = document.createElement("div");
+    info.className = "history-info";
 
-    figure.append(img, caption);
+    const promptEl = document.createElement("div");
+    promptEl.className = "history-prompt";
+    promptEl.textContent = item.prompt;
+
+    const chips = document.createElement("div");
+    chips.className = "history-chips";
+    chips.append(
+      metaChip("seed", String(item.seed)),
+      metaChip("scheduler", String(item.scheduler)),
+      metaChip("steps", String(item.steps)),
+    );
+    if (item.preset) {
+      chips.append(metaChip("preset", item.preset));
+    }
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "history-time";
+    timeEl.textContent = formatTime(item.timestamp);
+
+    const reuseBtn = document.createElement("button");
+    reuseBtn.type = "button";
+    reuseBtn.className = "reuse-btn";
+    reuseBtn.textContent = "Reuse Settings";
+    reuseBtn.addEventListener("click", () => reuseSettings(item));
+
+    info.append(promptEl, chips, timeEl, reuseBtn);
+    figure.append(img, info);
     item.el = figure;
   }
 
@@ -161,12 +186,43 @@ function renderHistory() {
   }
 }
 
-function addHistory(images) {
-  // Newest first; the batch itself is reversed so count=2 reads 42 then 43.
-  for (let i = images.length - 1; i >= 0; i--) {
-    history.unshift({ url: images[i].url, seed: images[i].seed, el: null });
+function formatTime(ts) {
+  const d = new Date(ts * 1000);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${mo}-${day} ${hh}:${mm}:${ss}`;
+}
+
+async function loadHistory() {
+  try {
+    const response = await fetch("/api/history");
+    if (!response.ok) return;
+    const items = await response.json();
+    history.length = 0;
+    for (const item of items) {
+      item.el = null;
+      history.push(item);
+    }
+    renderHistory();
+  } catch {
+    // History is best-effort; a failure must not affect the UI.
   }
-  renderHistory();
+}
+
+function reuseSettings(item) {
+  INPUTS.prompt.value = item.prompt || "";
+  INPUTS.negative.value = item.negative_prompt || "";
+  INPUTS.seed.value = String(item.seed);
+  INPUTS.scheduler.value = item.scheduler || "pndm";
+  INPUTS.steps.value = String(item.steps);
+  if (item.preset && PRESET_VALUES[item.preset]) {
+    INPUTS.preset.value = item.preset;
+  } else {
+    INPUTS.preset.value = "";
+  }
 }
 
 async function generate() {
@@ -211,7 +267,7 @@ async function generate() {
 
     const first = data.images[0];
     renderPreview(first, payload, data.total_time);
-    addHistory(data.images);
+    loadHistory();
 
     const seeds = data.images.map((im) => im.seed).join(", ");
     infoEl.textContent =
@@ -247,3 +303,5 @@ INPUTS.steps.addEventListener("input", () => {
 });
 
 button.addEventListener("click", generate);
+
+loadHistory();

@@ -173,6 +173,13 @@ No sidecar files are needed. To read the metadata:
 python -c "from PIL import Image; print(Image.open('outputs/<file>.png').text)"
 ```
 
+## History
+
+- **Session-only.** History lives in memory for the current server session.
+- **Maximum 20 entries.** Older entries are discarded when the limit is reached.
+- **Restart clears history.** Stopping and restarting `web_ui.py` erases all history.
+- **Reuse Settings.** Click **Reuse Settings** on any history item to restore its prompt, negative prompt, seed, preset, scheduler, and steps into the form. Generation does not start automatically.
+
 ## Known GTX 1060 limitations
 
 - **512×512 is the sweet spot** (~1.1 s/step, ~2.9 GB peak). 768×768 works but

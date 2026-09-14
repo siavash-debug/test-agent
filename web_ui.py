@@ -46,6 +46,8 @@ _pipe = None
 _pipe_device = None
 _pipe_lock = threading.Lock()   # guards pipeline initialization
 _gen_lock = threading.Lock()    # allows only one generation job at a time
+MAX_HISTORY = 20
+_history: list[dict] = []   # session-only, newest first
 
 
 def get_pipeline():
@@ -217,6 +219,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/":
             self._serve_file(STATIC_DIR / "index.html", STATIC_DIR)
+        elif path == "/api/history":
+            self._send_json(200, list(_history))
         elif path.startswith("/static/"):
             rel = path[len("/static/"):]
             if not rel or "/" in rel or "\\" in rel:
@@ -283,6 +287,20 @@ class Handler(BaseHTTPRequestHandler):
                 preset=preset,
             )
             total_time = round(time.perf_counter() - t0, 2)
+            if images:
+                first = images[0]
+                _history.insert(0, {
+                    "url": f"/outputs/{first['filename']}",
+                    "prompt": params["prompt"],
+                    "negative_prompt": params["negative"],
+                    "seed": params["seed"],
+                    "preset": params.get("preset"),
+                    "scheduler": params["scheduler"],
+                    "steps": params["steps"],
+                    "timestamp": time.time(),
+                })
+                if len(_history) > MAX_HISTORY:
+                    _history.pop()
             self._send_json(200, {
                 "success": True,
                 "device": device,
