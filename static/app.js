@@ -168,6 +168,18 @@ function renderHistory() {
     if (item.preset) {
       chips.append(metaChip("preset", item.preset));
     }
+    if (item.guidance !== undefined) {
+      chips.append(metaChip("guidance", String(item.guidance)));
+    }
+    if (item.width !== undefined && item.height !== undefined) {
+      chips.append(metaChip("size", item.width + "x" + item.height));
+    }
+    if (item.device !== undefined) {
+      chips.append(metaChip("device", item.device));
+    }
+    if (item.generation_time !== undefined) {
+      chips.append(metaChip("time", item.generation_time + "s"));
+    }
 
     const timeEl = document.createElement("div");
     timeEl.className = "history-time";

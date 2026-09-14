@@ -175,9 +175,8 @@ python -c "from PIL import Image; print(Image.open('outputs/<file>.png').text)"
 
 ## History
 
-- **Session-only.** History lives in memory for the current server session.
+- **Persistent.** History is saved to `outputs/history.json` and restored when the server starts.
 - **Maximum 20 entries.** Older entries are discarded when the limit is reached.
-- **Restart clears history.** Stopping and restarting `web_ui.py` erases all history.
 - **Reuse Settings.** Click **Reuse Settings** on any history item to restore its prompt, negative prompt, seed, preset, scheduler, and steps into the form. Generation does not start automatically.
 
 ## Known GTX 1060 limitations

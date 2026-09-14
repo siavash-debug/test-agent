@@ -48,7 +48,7 @@ _pipe_device = None
 _pipe_lock = threading.Lock()   # guards pipeline initialization
 _gen_lock = threading.Lock()    # allows only one generation job at a time
 MAX_HISTORY = 20
-_history: list[dict] = []   # session-only, newest first
+_history: list[dict] = []   # newest first
 
 
 def _load_history():
@@ -372,6 +372,11 @@ class Handler(BaseHTTPRequestHandler):
                     "preset": params.get("preset"),
                     "scheduler": scheduler,
                     "steps": steps,
+                    "guidance": params["guidance"],
+                    "width": params["width"],
+                    "height": params["height"],
+                    "device": device,
+                    "generation_time": total_time,
                     "timestamp": time.time(),
                 })
                 if len(_history) > MAX_HISTORY:
