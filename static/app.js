@@ -12,6 +12,7 @@ const INPUTS = {
   seed: $("seed"),
   count: $("count"),
   scheduler: $("scheduler"),
+  preset: $("preset"),
 };
 
 const statusEl = $("status");
@@ -30,6 +31,12 @@ previewEl.parentElement.insertBefore(warningEl, previewEl.nextSibling);
 const BUTTON_LABEL = "Generate";
 let busy = false;              // single in-flight request guard
 const history = [];            // session-only, newest first
+
+const PRESET_VALUES = {
+  quality: { scheduler: "pndm", steps: 25 },
+  balanced: { scheduler: "pndm", steps: 8 },
+  fast: { scheduler: "lcm", steps: 8 },
+};
 
 function setStatus(text, kind) {
   statusEl.textContent = text;
@@ -70,6 +77,7 @@ function readPayload() {
     seed: seedText === "" ? null : parseInt(seedText, 10),
     count: parseInt(INPUTS.count.value, 10),
     scheduler: INPUTS.scheduler.value,
+    preset: INPUTS.preset.value || null,
   };
 }
 
@@ -118,6 +126,7 @@ function renderPreview(image, settings, totalTime) {
     metaChip("steps", String(settings.steps)),
     metaChip("guidance", String(settings.guidance)),
     metaChip("scheduler", String(settings.scheduler)),
+    metaChip("preset", settings.preset || "custom"),
   );
 
   previewEl.append(img, meta, link);
@@ -217,5 +226,24 @@ async function generate() {
     setBusy(false);
   }
 }
+
+INPUTS.preset.addEventListener("change", () => {
+  const preset = INPUTS.preset.value;
+  if (preset && PRESET_VALUES[preset]) {
+    INPUTS.scheduler.value = PRESET_VALUES[preset].scheduler;
+    INPUTS.steps.value = PRESET_VALUES[preset].steps;
+    clearWarning();
+  }
+});
+
+INPUTS.scheduler.addEventListener("change", () => {
+  INPUTS.preset.value = "";
+  clearWarning();
+});
+
+INPUTS.steps.addEventListener("input", () => {
+  INPUTS.preset.value = "";
+  clearWarning();
+});
 
 button.addEventListener("click", generate);

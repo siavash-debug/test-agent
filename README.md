@@ -93,9 +93,24 @@ Options:
 | `--steps N` | 25 | Denoising steps |
 | `--guidance F` | 7.5 | Classifier-free guidance scale |
 | `--scheduler {pndm,lcm}` | pndm | Scheduler (see below) |
+| `--preset {quality,balanced,fast}` | none | Preset (overrides scheduler and steps) |
 | `--width N` | 512 | Multiple of 8, 64–768 |
 | `--height N` | 512 | Multiple of 8, 64–768 |
 | `--count N` | 1 | Images from one prompt; seeds advance by 1 |
+
+### Presets
+
+Presets combine a scheduler and step count for common workflows:
+
+| Preset | Scheduler | Steps | Purpose |
+|---|---|---:|---|
+| `quality` | pndm | 25 | Best current quality |
+| `balanced` | pndm | 8 | Faster PNDM |
+| `fast` | lcm | 8 | Fastest recommended mode |
+
+If a preset is explicitly provided, it determines both scheduler and steps.
+If no preset is provided, the existing behavior is preserved
+(scheduler defaults to pndm; steps default to 25).
 
 ### Scheduler
 
@@ -137,7 +152,7 @@ are serialized, so only one job uses the GPU at a time.
 Every PNG embeds its own recipe as PNG text metadata:
 
 `prompt`, `negative_prompt`, `seed`, `steps`, `guidance_scale`, `width`,
-`height`, `model`, `scheduler`.
+`height`, `model`, `scheduler`, `preset`.
 
 No sidecar files are needed. To read the metadata:
 

@@ -23,6 +23,7 @@ Optional flags:
     --guidance F      classifier-free guidance scale (default 7.5)
     --scheduler {pndm,lcm}  scheduler (default: pndm; lcm is faster but
                       may reduce quality below 8 steps)
+    --preset {quality,balanced,fast}  preset (overrides scheduler and steps)
     --width N         image width in pixels (default 512). Must be 64-768 and
                       divisible by 8 (512, 640, 768, ...).
     --height N        image height in pixels (default 512). Same rules as --width.
@@ -53,6 +54,14 @@ MODEL_NAME = "stable-diffusion-v1-5 (fp16)"
 # Supported schedulers. PNDM is the default; LCM provides faster inference
 # at the cost of potential quality tradeoffs at very low step counts.
 SCHEDULERS = ("pndm", "lcm")
+
+# Generation presets: each maps to a (scheduler, steps) pair.
+PRESETS = {
+    "quality": ("pndm", 25),
+    "balanced": ("pndm", 8),
+    "fast": ("lcm", 8),
+}
+PRESET_NAMES = tuple(PRESETS.keys())
 
 # Image dimension rules. The VAE downsamples by 8, so dimensions that are not
 # multiples of 8 make diffusers reject the request outright. 768 is the tested
@@ -127,6 +136,16 @@ def scheduler_choice(text: str) -> str:
     return value
 
 
+def preset_choice(text: str) -> str:
+    """argparse type: only supported preset names."""
+    value = text.lower()
+    if value not in PRESET_NAMES:
+        raise argparse.ArgumentTypeError(
+            f"must be one of {', '.join(PRESET_NAMES)} (got '{text}')"
+        )
+    return value
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Local text-to-image engine: TEXT PROMPT -> SD 1.5 -> PNG.",
@@ -151,6 +170,8 @@ def parse_args() -> argparse.Namespace:
                         help="number of images from the same prompt")
     parser.add_argument("--scheduler", type=scheduler_choice, default="pndm",
                         help="scheduler: pndm (default) or lcm")
+    parser.add_argument("--preset", type=preset_choice, default=None,
+                        help="generation preset (overrides scheduler and steps)")
 
     args = parser.parse_args()
 
@@ -233,7 +254,8 @@ def unique_output_path() -> Path:
 
 def build_png_metadata(prompt: str, negative: str | None, seed: int, steps: int,
                        guidance: float, width: int, height: int,
-                       scheduler: str = "pndm") -> PngInfo:
+                       scheduler: str = "pndm",
+                       preset: str | None = None) -> PngInfo:
     """Metadata embedded directly in the PNG (no sidecar file).
 
     Storing the full recipe makes any image reproducible from the file alone.
@@ -248,6 +270,8 @@ def build_png_metadata(prompt: str, negative: str | None, seed: int, steps: int,
     meta.add_text("height", str(height))
     meta.add_text("model", MODEL_NAME)
     meta.add_text("scheduler", scheduler)
+    if preset is not None:
+        meta.add_text("preset", preset)
     return meta
 
 
@@ -257,7 +281,8 @@ def generate_images(prompt: str, *, negative: str | None = None,
                      seed: int | None = None, count: int = 1,
                      device: str | None = None,
                      pipe: StableDiffusionPipeline | None = None,
-                     scheduler: str = "pndm") -> list[dict]:
+                     scheduler: str = "pndm",
+                     preset: str | None = None) -> list[dict]:
     """Generate `count` images sequentially from `prompt`, saving each to
     OUTPUT_DIR with a unique timestamped filename and embedded PNG metadata.
 
@@ -301,7 +326,8 @@ def generate_images(prompt: str, *, negative: str | None = None,
             current_seed = base_seed + i
             generator = torch.Generator(device=device).manual_seed(current_seed)
             metadata = build_png_metadata(prompt, negative, current_seed, steps,
-                                             guidance, width, height, scheduler)
+                                             guidance, width, height, scheduler,
+                                             preset=preset)
 
             t1 = time.perf_counter()
             try:
@@ -342,6 +368,14 @@ def generate_images(prompt: str, *, negative: str | None = None,
 def main() -> None:
     args = parse_args()
 
+    # Resolve preset: if explicitly provided, it determines scheduler and steps.
+    scheduler = args.scheduler
+    steps = args.steps
+    preset = args.preset
+    if preset is not None:
+        scheduler, steps = PRESETS[preset]
+        print(f"[preset] {preset} -> scheduler: {scheduler}, steps: {steps}", flush=True)
+
     device = pick_device()
     if device == "cuda":
         print(f"[device] CUDA: {torch.cuda.get_device_name(0)} (fp16)")
@@ -361,7 +395,7 @@ def main() -> None:
     images = generate_images(
         args.prompt,
         negative=args.negative,
-        steps=args.steps,
+        steps=steps,
         guidance=args.guidance,
         width=args.width,
         height=args.height,
@@ -369,7 +403,8 @@ def main() -> None:
         count=args.count,
         device=device,
         pipe=pipe,
-        scheduler=args.scheduler,
+        scheduler=scheduler,
+        preset=preset,
     )
 
     gen_times = [im["time"] for im in images]
@@ -378,18 +413,20 @@ def main() -> None:
 
     print(f"[prompt] {args.prompt}")
     print(f"[negative] {args.negative if args.negative else '(none)'}")
-    print(f"[scheduler] {args.scheduler}")
+    if preset is not None:
+        print(f"[preset] {preset}")
+    print(f"[scheduler] {scheduler}")
     if args.count == 1:
         print(f"[seed] {seeds[0]}")
     else:
         print(f"[seeds] {', '.join(map(str, seeds))}")
-    print(f"[steps] {args.steps}")
+    print(f"[steps] {steps}")
     print(f"[guidance] {args.guidance}")
     print(f"[resolution] {args.width}x{args.height}")
     print(f"[device] {device}")
     if args.count == 1:
         print(f"[time] load {t_load:.1f}s | generation {gen_times[0]:.1f}s "
-              f"({args.steps} steps, {gen_times[0] / args.steps:.2f}s/step)")
+              f"({steps} steps, {gen_times[0] / steps:.2f}s/step)")
     else:
         print(f"[time] load {t_load:.1f}s | total batch {total_gen:.1f}s "
               f"({args.count} images, {total_gen / args.count:.2f}s avg)")

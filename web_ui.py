@@ -137,6 +137,14 @@ def validate_payload(payload):
     if scheduler not in ("pndm", "lcm"):
         raise ValueError("scheduler must be 'pndm' or 'lcm'")
 
+    preset = payload.get("preset")
+    if preset is not None:
+        if not isinstance(preset, str):
+            raise ValueError("preset must be a string")
+        preset = preset.lower()
+        if preset not in generate.PRESETS:
+            raise ValueError("preset must be 'quality', 'balanced', or 'fast'")
+
     seed = payload.get("seed")
     if seed is None or seed == "":
         seed = None
@@ -158,6 +166,7 @@ def validate_payload(payload):
         "seed": seed,
         "count": count,
         "scheduler": scheduler,
+        "preset": preset,
     }
 
 
@@ -248,11 +257,17 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             pipe, device = get_pipeline()
+            # Resolve preset: if provided, override scheduler and steps.
+            scheduler = params["scheduler"]
+            steps = params["steps"]
+            preset = params.get("preset")
+            if preset is not None:
+                scheduler, steps = generate.PRESETS[preset]
             t0 = time.perf_counter()
             images = generate.generate_images(
                 params["prompt"],
                 negative=params["negative"],
-                steps=params["steps"],
+                steps=steps,
                 guidance=params["guidance"],
                 width=params["width"],
                 height=params["height"],
@@ -260,7 +275,8 @@ class Handler(BaseHTTPRequestHandler):
                 count=params["count"],
                 device=device,
                 pipe=pipe,
-                scheduler=params["scheduler"],
+                scheduler=scheduler,
+                preset=preset,
             )
             total_time = round(time.perf_counter() - t0, 2)
             self._send_json(200, {
