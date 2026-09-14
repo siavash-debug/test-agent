@@ -50,6 +50,46 @@ _gen_lock = threading.Lock()    # allows only one generation job at a time
 MAX_HISTORY = 20
 _history: list[dict] = []   # newest first
 
+# --- Request-level timeout for generation ---
+# A safe request/response guard: the HTTP handler waits for the generation
+# worker to complete within this window. If it does not, a 504 is returned
+# to the client while the worker continues holding _gen_lock and using the GPU.
+# The actual CUDA operation is NEVER forcibly terminated.
+GENERATION_TIMEOUT = 600  # seconds
+
+# --- Graceful shutdown ---
+_shutting_down = threading.Event()
+
+# --- Generation progress (thread-safe) ---
+_progress_lock = threading.Lock()
+_progress_active = False
+_progress_current_step = 0
+_progress_total_steps = 0
+
+
+def _reset_progress(total_steps=0):
+    with _progress_lock:
+        global _progress_active, _progress_current_step, _progress_total_steps
+        _progress_active = total_steps > 0
+        _progress_current_step = 0
+        _progress_total_steps = total_steps
+
+
+def _set_progress_step(step):
+    global _progress_current_step
+    with _progress_lock:
+        _progress_current_step = step
+
+
+def _get_progress():
+    with _progress_lock:
+        return {
+            "active": _progress_active,
+            "current_step": _progress_current_step,
+            "total_steps": _progress_total_steps,
+        }
+
+
 
 def _load_history():
     """Load history from disk. Returns empty list if missing/corrupt."""
@@ -199,6 +239,16 @@ def validate_payload(payload):
     }
 
 
+def _progress_callback(pipeline, step, timestep, callback_kwargs):
+    """diffusers callback_on_step_end: called after each denoising step.
+
+    Returns callback_kwargs unchanged. Updates shared progress state.
+    Runs on the generation worker thread.
+    """
+    _set_progress_step(step)
+    return callback_kwargs
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "LocalTxt2Img/1.0"
 
@@ -246,6 +296,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, list(_history))
         elif path == "/api/outputs":
             self._send_json(200, self._list_outputs())
+        elif path == "/api/progress":
+            self._send_json(200, _get_progress())
         elif path.startswith("/static/"):
             rel = path[len("/static/"):]
             if not rel or "/" in rel or "\\" in rel:
@@ -316,6 +368,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(404, {"success": False, "error": "Not found"})
             return
 
+        # --- Shutdown guard: reject new generation requests ---
+        if _shutting_down.is_set():
+            self._send_json(503, {
+                "success": False,
+                "error": "Server is shutting down. Try again shortly.",
+            })
+            return
+
         try:
             length = int(self.headers.get("Content-Length", 0) or 0)
         except ValueError:
@@ -333,95 +393,175 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(400, {"success": False, "error": str(exc)})
             return
 
+        # --- Shutdown guard after validation ---
+        if _shutting_down.is_set():
+            self._send_json(503, {
+                "success": False,
+                "error": "Server is shutting down. Try again shortly.",
+            })
+            return
+
+        # --- Concurrency guard ---
         if not _gen_lock.acquire(blocking=False):
             self._send_json(409, {"success": False,
                                   "error": "Generation already in progress"})
             return
 
+        # --- Prepare progress state for this generation ---
+        steps = params.get("steps", 25)
+        _reset_progress(steps)
+
+        # --- Generation worker state ---
+        state = {
+            "complete": threading.Event(),
+            "result": None,
+            "error": None,
+            "error_type": None,
+        }
+
+        def generation_worker():
+            """Run generation in a dedicated thread.
+
+            The calling thread (handler) does NOT touch _gen_lock — it is
+            released here in the finally block, guaranteeing the lock stays
+            held until the GPU operation actually stops.
+            """
+            try:
+                # Resolve preset: if provided, override scheduler and steps.
+                scheduler = params["scheduler"]
+                steps = params["steps"]
+                preset = params.get("preset")
+                if preset is not None:
+                    scheduler, steps = generate.PRESETS[preset]
+                t0 = time.perf_counter()
+                images = generate.generate_images(
+                    params["prompt"],
+                    negative_prompt=params["negative"],
+                    steps=steps,
+                    guidance=params["guidance"],
+                    width=params["width"],
+                    height=params["height"],
+                    seed=params["seed"],
+                    count=params["count"],
+                    device=device,
+                    pipe=pipe,
+                    scheduler=scheduler,
+                    preset=preset,
+                    callback_on_step_end=_progress_callback,
+                )
+                total_time = round(time.perf_counter() - t0, 2)
+                if images:
+                    first = images[0]
+                    _history.insert(0, {
+                        "url": f"/outputs/{first['filename']}",
+                        "prompt": params["prompt"],
+                        "negative_prompt": params["negative"],
+                        "seed": params["seed"],
+                        "preset": params.get("preset"),
+                        "scheduler": scheduler,
+                        "steps": steps,
+                        "guidance": params["guidance"],
+                        "width": params["width"],
+                        "height": params["height"],
+                        "device": device,
+                        "generation_time": total_time,
+                        "timestamp": time.time(),
+                    })
+                    if len(_history) > MAX_HISTORY:
+                        _history.pop()
+                    _save_history()
+                state["result"] = {
+                    "success": True,
+                    "device": device,
+                    "total_time": total_time,
+                    "images": [
+                        {"filename": im["filename"],
+                         "url": f"/outputs/{im['filename']}",
+                         "seed": im["seed"]}
+                        for im in images
+                    ],
+                }
+            except RuntimeError as exc:
+                message = str(exc)
+                if "out of memory" in message.lower():
+                    state["error_type"] = "oom"
+                    state["error"] = message
+                else:
+                    state["error_type"] = "server"
+                    state["error"] = ("Generation failed on the server. "
+                                      "Check the server console for details.")
+            except Exception:
+                state["error_type"] = "server"
+                state["error"] = ("Generation failed on the server. "
+                                  "Check the server console for details.")
+            finally:
+                _reset_progress()
+                state["complete"].set()
+                _gen_lock.release()
+
+        # --- Load pipeline (before worker; fast, no GPU inference) ---
         try:
             pipe, device = get_pipeline()
-            # Resolve preset: if provided, override scheduler and steps.
-            scheduler = params["scheduler"]
-            steps = params["steps"]
-            preset = params.get("preset")
-            if preset is not None:
-                scheduler, steps = generate.PRESETS[preset]
-            t0 = time.perf_counter()
-            images = generate.generate_images(
-                params["prompt"],
-                negative_prompt=params["negative"],
-                steps=steps,
-                guidance=params["guidance"],
-                width=params["width"],
-                height=params["height"],
-                seed=params["seed"],
-                count=params["count"],
-                device=device,
-                pipe=pipe,
-                scheduler=scheduler,
-                preset=preset,
-            )
-            total_time = round(time.perf_counter() - t0, 2)
-            if images:
-                first = images[0]
-                _history.insert(0, {
-                    "url": f"/outputs/{first['filename']}",
-                    "prompt": params["prompt"],
-                    "negative_prompt": params["negative"],
-                    "seed": params["seed"],
-                    "preset": params.get("preset"),
-                    "scheduler": scheduler,
-                    "steps": steps,
-                    "guidance": params["guidance"],
-                    "width": params["width"],
-                    "height": params["height"],
-                    "device": device,
-                    "generation_time": total_time,
-                    "timestamp": time.time(),
-                })
-                if len(_history) > MAX_HISTORY:
-                    _history.pop()
-                _save_history()
-            self._send_json(200, {
-                "success": True,
-                "device": device,
-                "total_time": total_time,
-                "images": [
-                    {"filename": im["filename"],
-                     "url": f"/outputs/{im['filename']}",
-                     "seed": im["seed"]}
-                    for im in images
-                ],
-            })
         except RuntimeError as exc:
-            # Our own actionable failures. Out-of-memory text contains only
-            # dimensions and advice, so it is safe and useful to show. Anything
-            # else (e.g. model missing) may embed a local path and stays in the
-            # console.
             message = str(exc)
-            if "out of memory" in message.lower():
-                print(f"[webui] {message}", file=sys.stderr, flush=True)
-                self._send_json(507, {"success": False, "error": message})
+            _gen_lock.release()
+            if "Model not found" in message:
+                self._send_json(503, {
+                    "success": False,
+                    "error": "Model not found. Run download_model.py to download the model.",
+                })
             else:
-                print(f"[webui] generation failed: {exc!r}", file=sys.stderr, flush=True)
-                traceback.print_exc(file=sys.stderr)
                 self._send_json(500, {
                     "success": False,
                     "error": ("Generation failed on the server. "
                               "Check the server console for details."),
                 })
-        except Exception as exc:  # one bad job must not kill the server
-            # Full detail (paths, traceback) goes to THIS server's console only;
-            # the browser gets a short, path-free message.
-            print(f"[webui] generation failed: {exc!r}", file=sys.stderr, flush=True)
-            traceback.print_exc(file=sys.stderr)
+            return
+
+        # --- Start generation worker ---
+        worker_started = False
+        try:
+            t = threading.Thread(target=generation_worker)
+            t.start()
+            worker_started = True
+        except Exception:
+            _gen_lock.release()
             self._send_json(500, {
                 "success": False,
                 "error": ("Generation failed on the server. "
                           "Check the server console for details."),
             })
+            return
+
+        # --- Wait for completion with safe timeout ---
+        # SAFETY: The handler waits for the worker to finish within
+        # GENERATION_TIMEOUT seconds. If the timeout fires, a 504 is
+        # returned to the client while the worker continues running,
+        # still holding _gen_lock and still using the GPU. The CUDA
+        # operation is NEVER forcibly terminated. The lock is released
+        # only when the worker's finally block runs (generation done).
+        try:
+            if state["complete"].wait(timeout=GENERATION_TIMEOUT):
+                if state["error_type"] == "oom":
+                    self._send_json(507, {
+                        "success": False,
+                        "error": state["error"],
+                    })
+                elif state["error_type"] == "server":
+                    self._send_json(500, {
+                        "success": False,
+                        "error": state["error"],
+                    })
+                else:
+                    self._send_json(200, state["result"])
+            else:
+                self._send_json(504, {
+                    "success": False,
+                    "error": "Generation timed out. The operation is still running on the server.",
+                })
         finally:
-            _gen_lock.release()
+            if _shutting_down.is_set():
+                state["complete"].wait()
 
 
 class NoReuseHTTPServer(ThreadingHTTPServer):
@@ -450,7 +590,7 @@ def main():
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        pass
+        _shutting_down.set()
     finally:
         server.server_close()
 

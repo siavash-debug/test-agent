@@ -17,6 +17,7 @@ const INPUTS = {
 
 const statusEl = $("status");
 const infoEl = $("result-info");
+const progressEl = $("progress");
 const errorEl = $("error");
 const previewEl = $("preview");
 const historyEl = $("history");
@@ -34,6 +35,7 @@ warningEl.hidden = true;
 previewEl.parentElement.insertBefore(warningEl, previewEl.nextSibling);
 
 const BUTTON_LABEL = "Generate";
+const PROGRESS_TIMEOUT_MS = 650000;
 let busy = false;              // single in-flight request guard
 const history = [];            // session-only, newest first
 
@@ -91,6 +93,58 @@ function setBusy(value) {
   button.disabled = value;
   button.textContent = value ? "Generating..." : BUTTON_LABEL;
   button.classList.toggle("working", value);
+}
+
+const PROGRESS_POLL_INTERVAL = 500;
+let _progressTimer = null;
+
+function startProgressPolling() {
+  stopProgressPolling();
+  progressEl.hidden = false;
+  _pollProgress();
+  _progressTimer = setInterval(_pollProgress, PROGRESS_POLL_INTERVAL);
+}
+
+function stopProgressPolling() {
+  if (_progressTimer) {
+    clearInterval(_progressTimer);
+    _progressTimer = null;
+  }
+  progressEl.hidden = true;
+  progressEl.textContent = "";
+}
+
+async function _pollProgress() {
+  try {
+    const response = await fetch("/api/progress");
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data || !data.active) {
+      progressEl.hidden = true;
+      return;
+    }
+    const current = Math.min(data.current_step, data.total_steps);
+    const total = data.total_steps || 1;
+    const pct = Math.min(100, Math.round((current / total) * 100));
+    progressEl.innerHTML =
+      "Generating... Step " + current + "/" + total +
+      ' <span class="progress-bar"><span class="progress-fill" style="width:'
+      + pct + '%"></span></span>' + pct + "%";
+  } catch {
+    // Progress polling best-effort.
+  }
+}
+
+function showTimeoutError() {
+  setStatus("Error", "error");
+  showError("Generation timed out. The operation is still running on the server. Try again later.");
+  button.focus();
+}
+
+function showShutdownError() {
+  setStatus("Error", "error");
+  showError("Server is shutting down. Try again shortly.");
+  button.focus();
 }
 
 function metaChip(label, value) {
@@ -348,13 +402,19 @@ async function generate() {
 
   setBusy(true);
   setStatus("Generating...", "working");
+  startProgressPolling();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PROGRESS_TIMEOUT_MS);
 
   try {
     const response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     let data = null;
     try {
@@ -363,6 +423,14 @@ async function generate() {
       data = null;
     }
 
+    if (response.status === 504) {
+      showTimeoutError();
+      return;
+    }
+    if (response.status === 503) {
+      showShutdownError();
+      return;
+    }
     if (!response.ok || !data || data.success !== true) {
       const message = (data && data.error) || ("Request failed (HTTP " + response.status + ").");
       throw new Error(message);
@@ -380,10 +448,15 @@ async function generate() {
       " · seed(s): " + seeds;
     setStatus("Completed", "done");
   } catch (err) {
-    setStatus("Error", "error");
-    showError(err && err.message ? err.message : "Something went wrong. Please try again.");
+    if (err && err.name === "AbortError") {
+      showTimeoutError();
+    } else {
+      setStatus("Error", "error");
+      showError(err && err.message ? err.message : "Something went wrong. Please try again.");
+    }
     button.focus();
   } finally {
+    stopProgressPolling();
     setBusy(false);
   }
 }

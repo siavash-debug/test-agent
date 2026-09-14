@@ -279,13 +279,14 @@ def build_png_metadata(prompt: str, negative: str | None, seed: int, steps: int,
 
 
 def generate_images(prompt: str, *, negative_prompt: str = "",
-                     steps: int = 25, guidance: float = 7.5,
-                     width: int = 512, height: int = 512,
-                     seed: int = -1, count: int = 1,
-                     device: str | None = None,
-                     pipe: StableDiffusionPipeline | None = None,
-                     scheduler: str = "pndm",
-                     preset: str | None = None) -> list[dict]:
+                      steps: int = 25, guidance: float = 7.5,
+                      width: int = 512, height: int = 512,
+                      seed: int = -1, count: int = 1,
+                      device: str | None = None,
+                      pipe: StableDiffusionPipeline | None = None,
+                      scheduler: str = "pndm",
+                      preset: str | None = None,
+                      callback_on_step_end=None) -> list[dict]:
     """Generate `count` images sequentially from `prompt`, saving each to
     OUTPUT_DIR with a unique timestamped filename and embedded PNG metadata.
 
@@ -342,6 +343,7 @@ def generate_images(prompt: str, *, negative_prompt: str = "",
                     height=height,
                     width=width,
                     generator=generator,
+                    callback_on_step_end=callback_on_step_end,
                 )
             except torch.cuda.OutOfMemoryError as exc:
                 if device == "cuda":
