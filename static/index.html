@@ -87,6 +87,24 @@
         <p class="placeholder" id="history-empty">Images generated in this session will appear here.</p>
       </div>
     </section>
+
+    <section class="outputs" aria-label="Generated outputs">
+      <h2>Outputs <span class="outputs-count" id="outputs-count">0</span></h2>
+      <div id="outputs-loading" class="loading-state" hidden>
+        <div class="skeleton-grid">
+          <div class="skeleton-card"><div class="skeleton-thumb"></div>
+            <div class="skeleton-lines"><div class="skeleton-line w80"></div><div class="skeleton-line w60"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-thumb"></div>
+            <div class="skeleton-lines"><div class="skeleton-line w60"></div><div class="skeleton-line w80"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-thumb"></div>
+            <div class="skeleton-lines"><div class="skeleton-line w80"></div><div class="skeleton-line w60"></div></div></div>
+        </div>
+      </div>
+      <div id="outputs-error" class="error" role="alert" hidden></div>
+      <div id="outputs" class="outputs-grid">
+        <p class="placeholder" id="outputs-empty">No outputs yet — generate an image first.</p>
+      </div>
+    </section>
   </main>
 
   <script src="/static/app.js"></script>

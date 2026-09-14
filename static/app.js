@@ -22,6 +22,11 @@ const previewEl = $("preview");
 const historyEl = $("history");
 const historyCountEl = $("history-count");
 const historyEmptyEl = $("history-empty");
+const outputsEl = $("outputs");
+const outputsCountEl = $("outputs-count");
+const outputsEmptyEl = $("outputs-empty");
+const outputsLoading = $("outputs-loading");
+const outputsError = $("outputs-error");
 const button = $("generate");
 const warningEl = document.createElement("div");
 warningEl.className = "warning";
@@ -225,6 +230,92 @@ function reuseSettings(item) {
   }
 }
 
+async function loadOutputs() {
+  outputsLoading.hidden = false;
+  outputsError.hidden = true;
+  try {
+    const response = await fetch("/api/outputs");
+    if (!response.ok) throw new Error("Failed to load outputs");
+    const items = await response.json();
+    outputsLoading.hidden = true;
+    renderOutputs(items);
+  } catch {
+    outputsLoading.hidden = true;
+    outputsError.textContent = "Failed to load outputs.";
+    outputsError.hidden = false;
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function renderOutputs(items) {
+  outputsCountEl.textContent = String(items.length);
+  outputsEmptyEl.hidden = items.length > 0;
+
+  for (const item of items) {
+    if (item.el) continue;
+    const card = document.createElement("div");
+    card.className = "output-card";
+
+    const img = document.createElement("img");
+    img.src = item.url;
+    img.alt = "Output " + item.filename;
+    img.className = "output-thumb";
+    img.loading = "lazy";
+
+    const info = document.createElement("div");
+    info.className = "output-info";
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "output-name";
+    nameEl.textContent = item.filename;
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "output-meta";
+    metaEl.textContent = formatFileSize(item.size || 0);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "delete-btn";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.setAttribute("aria-label", "Delete " + item.filename);
+    deleteBtn.addEventListener("click", () => deleteOutput(item.filename));
+
+    info.append(nameEl, metaEl, deleteBtn);
+    card.append(img, info);
+    item.el = card;
+  }
+
+  outputsEl.innerHTML = "";
+  outputsEl.append(outputsEmptyEl);
+  for (const item of items) {
+    outputsEl.append(item.el);
+  }
+}
+
+async function deleteOutput(filename) {
+  const confirmed = confirm("Delete " + filename + "?");
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch("/api/outputs/" + encodeURIComponent(filename), {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to delete");
+    }
+    await loadOutputs();
+  } catch (err) {
+    outputsError.textContent = err && err.message ? err.message : "Failed to delete output.";
+    outputsError.hidden = false;
+  }
+}
+
 async function generate() {
   if (busy) return;                 // hard guard against double submits
 
@@ -268,6 +359,7 @@ async function generate() {
     const first = data.images[0];
     renderPreview(first, payload, data.total_time);
     loadHistory();
+    loadOutputs();
 
     const seeds = data.images.map((im) => im.seed).join(", ");
     infoEl.textContent =
@@ -278,6 +370,7 @@ async function generate() {
   } catch (err) {
     setStatus("Error", "error");
     showError(err && err.message ? err.message : "Something went wrong. Please try again.");
+    button.focus();
   } finally {
     setBusy(false);
   }
@@ -305,3 +398,4 @@ INPUTS.steps.addEventListener("input", () => {
 button.addEventListener("click", generate);
 
 loadHistory();
+loadOutputs();

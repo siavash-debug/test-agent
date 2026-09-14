@@ -244,6 +244,8 @@ class Handler(BaseHTTPRequestHandler):
             self._serve_file(STATIC_DIR / "index.html", STATIC_DIR)
         elif path == "/api/history":
             self._send_json(200, list(_history))
+        elif path == "/api/outputs":
+            self._send_json(200, self._list_outputs())
         elif path.startswith("/static/"):
             rel = path[len("/static/"):]
             if not rel or "/" in rel or "\\" in rel:
@@ -258,6 +260,56 @@ class Handler(BaseHTTPRequestHandler):
             self._serve_file(OUTPUT_DIR / rel, OUTPUT_DIR, allowed_suffixes={".png"})
         else:
             self._send_text(404, "Not found")
+
+    def do_DELETE(self):
+        path = unquote(urlparse(self.path).path)
+
+        if not path.startswith("/api/outputs/"):
+            self._send_json(404, {"success": False, "error": "Not found"})
+            return
+
+        filename = path[len("/api/outputs/"):]
+        if not filename or "/" in filename or "\\" in filename:
+            self._send_json(400, {"success": False, "error": "Invalid filename"})
+            return
+        if not filename.endswith(".png"):
+            self._send_json(400, {"success": False, "error": "Only PNG files can be deleted"})
+            return
+
+        target = OUTPUT_DIR / filename
+        try:
+            resolved = target.resolve()
+            root_resolved = OUTPUT_DIR.resolve()
+        except OSError:
+            self._send_json(400, {"success": False, "error": "Invalid path"})
+            return
+        if not resolved.is_relative_to(root_resolved) or not resolved.is_file():
+            self._send_json(404, {"success": False, "error": "File not found"})
+            return
+
+        try:
+            resolved.unlink()
+        except OSError:
+            self._send_json(500, {"success": False, "error": "Failed to delete file"})
+            return
+
+        self._send_json(200, {"success": True, "filename": filename})
+
+    def _list_outputs(self):
+        """List generated PNG outputs with basic metadata."""
+        if not OUTPUT_DIR.is_dir():
+            return []
+        files = []
+        for f in sorted(OUTPUT_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+            if f.suffix.lower() == ".png" and f.name != "history.json":
+                stat = f.stat()
+                files.append({
+                    "filename": f.name,
+                    "url": f"/outputs/{f.name}",
+                    "size": stat.st_size,
+                    "mtime": stat.st_mtime,
+                })
+        return files
 
     def do_POST(self):
         if urlparse(self.path).path != "/api/generate":
