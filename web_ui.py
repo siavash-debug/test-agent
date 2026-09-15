@@ -519,11 +519,9 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         # --- Start generation worker ---
-        worker_started = False
         try:
             t = threading.Thread(target=generation_worker)
             t.start()
-            worker_started = True
         except Exception:
             _gen_lock.release()
             self._send_json(500, {

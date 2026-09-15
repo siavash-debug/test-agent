@@ -18,7 +18,7 @@ Inference is Stable Diffusion 1.5 (fp16) via `diffusers`, tuned to fit a
 |---|---|---|
 | GPU | NVIDIA GTX 1060 6 GB | Verified target: Surface Book 2 15", Pascal compute capability 6.1 |
 | VRAM | 4 GB free | ~2.9 GB peak at 512×512 |
-| RAM | 8 GB | Model loads via CPU |
+| RAM | 8 GB | Pipeline loaded on GPU when CUDA is available; CPU fallback otherwise |
 | Disk | ~6 GB | ~2 GB model + PyTorch |
 | CUDA | Driver 450+ | Verified with driver 546.33 |
 
@@ -146,6 +146,37 @@ Then open <http://127.0.0.1:8000>.
 The server is standard-library only and binds to `127.0.0.1` (localhost).
 The model is loaded once on the first request and reused; generation requests
 are serialized, so only one job uses the GPU at a time.
+
+## Server behavior
+
+### Generation timeout
+The server enforces a per-request generation timeout of 600 seconds. If a
+generation does not complete within this window, the server returns HTTP 504
+to the client. The underlying generation worker is **not** forcibly killed —
+CUDA inference continues running safely in the background until it finishes,
+and the generation lock remains held until the worker completes.
+
+### Safe shutdown
+Pressing Ctrl+C initiates a graceful server shutdown. During shutdown, new
+generation requests are rejected immediately with HTTP 503. Any generation
+already in progress is allowed to finish safely; no CUDA or thread operations
+are forcibly terminated.
+
+### Generation concurrency
+Only one generation job may use the GPU at a time. A concurrent generation
+request receives HTTP 409 (`Generation already in progress`). There is no
+generation queue — the request fails immediately rather than waiting.
+
+### Progress
+The server reports generation progress via `GET /api/progress`, which returns
+the current denoising step and total step count. The frontend polls this
+endpoint while a generation is active. Progress state is reset when
+generation finishes, errors, or the server shuts down.
+
+### Model loading errors
+If the model is not found, the server returns HTTP 503 with an actionable
+message instructing the user to run `download_model.py`. No traceback or
+local file path is exposed to the client.
 
 ## Seed
 
