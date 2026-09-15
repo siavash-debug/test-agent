@@ -210,6 +210,35 @@ python -c "from PIL import Image; print(Image.open('outputs/<file>.png').text)"
 - **Maximum 20 entries.** Older entries are discarded when the limit is reached.
 - **Reuse Settings.** Click **Reuse Settings** on any history item to restore its prompt, negative prompt, seed, preset, scheduler, and steps into the form. Generation does not start automatically.
 
+## Prompt Enhancement
+
+Prompt enhancement is an optional feature that uses an AI model to improve your image-generation prompt before it is sent to the local Stable Diffusion pipeline.
+
+- **Optional.** You can ignore the enhancement and generate directly with your original prompt.
+- **Image generation remains local.** Only the text enhancement is processed externally; the actual image is generated on your GPU.
+- **Groq** is used only for text enhancement. No image data is sent externally.
+- **Model:** `openai/gpt-oss-120b`
+
+When you click **Enhance Prompt**, your current prompt is sent to Groq. The enhanced text appears in a preview where you can review it and choose to use it or dismiss it. Your original prompt is always preserved.
+
+## API Key
+
+Prompt enhancement requires a Groq API key provided via the environment variable `GROQ_API_KEY`.
+
+**PowerShell:**
+
+```powershell
+$env:GROQ_API_KEY="your-key"
+```
+
+**CMD:**
+
+```cmd
+set GROQ_API_KEY=your-key
+```
+
+The key is used server-side only and is never exposed to the browser. If the key is not configured, enhancement fails with a clear message and image generation continues to work normally.
+
 ## Known GTX 1060 limitations
 
 - **512×512 is the sweet spot** (~1.1 s/step, ~2.9 GB peak). 768×768 works but

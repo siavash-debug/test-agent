@@ -10,6 +10,7 @@ Run:
 Then open http://127.0.0.1:8000 in a browser.
 """
 import json
+import os
 import sys
 import threading
 import time
@@ -236,6 +237,7 @@ def validate_payload(payload):
         "count": count,
         "scheduler": scheduler,
         "preset": preset,
+        "enhanced_prompt": payload.get("enhanced_prompt") or None,
     }
 
 
@@ -247,6 +249,41 @@ def _progress_callback(pipeline, step, timestep, callback_kwargs):
     """
     _set_progress_step(step)
     return callback_kwargs
+
+
+def _enhance_prompt(original_prompt):
+    """Call Groq API to enhance the prompt. Returns enhanced text or raises."""
+    try:
+        from groq import Groq, APITimeoutError, APIConnectionError
+    except ImportError:
+        raise RuntimeError("Groq SDK not installed")
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("Groq API key not configured")
+
+    client = Groq()
+    try:
+        completion = client.with_options(timeout=30.0).chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a prompt enhancement expert for Stable Diffusion 1.5 image generation. Improve the given image-generation prompt to be more descriptive, specific, and effective. Preserve the user's intended subject and style. Do not invent an unrelated concept. Return ONLY the enhanced prompt text — no explanation, no markdown, no surrounding quotes."},
+                {"role": "user", "content": original_prompt},
+            ],
+            model="openai/gpt-oss-120b",
+            max_completion_tokens=512,
+        )
+    except APITimeoutError:
+        raise RuntimeError("Prompt enhancement timed out")
+    except APIConnectionError:
+        raise RuntimeError("Prompt enhancement service unavailable")
+    except Exception:
+        raise RuntimeError("Prompt enhancement failed")
+
+    enhanced = completion.choices[0].message.content
+    if not enhanced or not isinstance(enhanced, str) or not enhanced.strip():
+        raise RuntimeError("Invalid enhancement response")
+
+    return enhanced.strip()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -364,7 +401,51 @@ class Handler(BaseHTTPRequestHandler):
         return files
 
     def do_POST(self):
-        if urlparse(self.path).path != "/api/generate":
+        path = urlparse(self.path).path
+
+        if path == "/api/enhance-prompt":
+            try:
+                length = int(self.headers.get("Content-Length", 0) or 0)
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(min(length, 1 << 20)) if length > 0 else b""
+            try:
+                payload = json.loads(raw.decode("utf-8") or "{}")
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self._send_json(400, {"success": False, "error": "Invalid JSON body"})
+                return
+
+            prompt = payload.get("prompt")
+            if not isinstance(prompt, str) or not prompt.strip():
+                self._send_json(400, {"success": False, "error": "prompt is required"})
+                return
+            if len(prompt) > MAX_PROMPT_LEN:
+                self._send_json(400, {"success": False, "error": f"prompt too long (maximum {MAX_PROMPT_LEN})"})
+                return
+
+            try:
+                enhanced = _enhance_prompt(prompt.strip())
+            except RuntimeError as exc:
+                message = str(exc)
+                if "not configured" in message:
+                    self._send_json(401, {"success": False, "error": message})
+                elif "timed out" in message:
+                    self._send_json(504, {"success": False, "error": message})
+                elif "unavailable" in message:
+                    self._send_json(502, {"success": False, "error": "Prompt enhancement service unavailable"})
+                elif "Invalid enhancement response" in message:
+                    self._send_json(500, {"success": False, "error": "Prompt enhancement returned an invalid response"})
+                else:
+                    self._send_json(500, {"success": False, "error": "Prompt enhancement failed"})
+                return
+
+            self._send_json(200, {
+                "original_prompt": prompt.strip(),
+                "enhanced_prompt": enhanced,
+            })
+            return
+
+        if path != "/api/generate":
             self._send_json(404, {"success": False, "error": "Not found"})
             return
 
@@ -466,6 +547,7 @@ class Handler(BaseHTTPRequestHandler):
                         "device": device,
                         "generation_time": total_time,
                         "timestamp": time.time(),
+                        "enhanced_prompt": params.get("enhanced_prompt"),
                     })
                     if len(_history) > MAX_HISTORY:
                         _history.pop()

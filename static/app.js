@@ -29,6 +29,11 @@ const outputsEmptyEl = $("outputs-empty");
 const outputsLoading = $("outputs-loading");
 const outputsError = $("outputs-error");
 const button = $("generate");
+const enhanceBtn = $("enhance");
+const enhancedPreview = $("enhanced-preview");
+const enhancedText = $("enhanced-text");
+const useEnhancedBtn = $("use-enhanced");
+const dismissEnhancedBtn = $("dismiss-enhanced");
 const warningEl = document.createElement("div");
 warningEl.className = "warning";
 warningEl.hidden = true;
@@ -39,6 +44,10 @@ const PROGRESS_TIMEOUT_MS = 650000;
 let busy = false;              // single in-flight request guard
 let _genStart = null;          // elapsed generation timer start (Date.now())
 const history = [];            // session-only, newest first
+
+let _enhanceBusy = false;
+let _lastEnhanced = null;
+let _enhancedUsed = false;
 
 const PRESET_VALUES = {
   quality: { scheduler: "pndm", steps: 25 },
@@ -86,6 +95,7 @@ function readPayload() {
     count: parseInt(INPUTS.count.value, 10),
     scheduler: INPUTS.scheduler.value,
     preset: INPUTS.preset.value || null,
+    enhanced_prompt: _enhancedUsed ? INPUTS.prompt.value.trim() : null,
   };
 }
 
@@ -474,6 +484,8 @@ async function generate() {
     stopProgressPolling();
     _genStart = null;
     setBusy(false);
+    _enhancedUsed = false;
+    _lastEnhanced = null;
   }
 }
 
@@ -494,6 +506,71 @@ INPUTS.scheduler.addEventListener("change", () => {
 INPUTS.steps.addEventListener("input", () => {
   INPUTS.preset.value = "";
   clearWarning();
+});
+
+enhanceBtn.addEventListener("click", async () => {
+  if (_enhanceBusy) return;
+
+  const prompt = INPUTS.prompt.value.trim();
+  if (!prompt) {
+    showError("Enter a prompt before enhancing.");
+    return;
+  }
+
+  _enhanceBusy = true;
+  enhanceBtn.disabled = true;
+  enhanceBtn.textContent = "Enhancing...";
+  enhanceBtn.setAttribute("aria-busy", "true");
+  clearError();
+
+  try {
+    const response = await fetch("/api/enhance-prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: prompt }),
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok || !data || !data.enhanced_prompt) {
+      const message = (data && data.error) || "Prompt enhancement failed.";
+      throw new Error(message);
+    }
+
+    _lastEnhanced = data.enhanced_prompt;
+    enhancedText.textContent = _lastEnhanced;
+    enhancedPreview.hidden = false;
+    useEnhancedBtn.focus();
+    setStatus("Enhanced", "ready");
+  } catch (err) {
+    showError(err && err.message ? err.message : "Prompt enhancement failed. Please try again.");
+    setStatus("Ready", "ready");
+  } finally {
+    _enhanceBusy = false;
+    enhanceBtn.disabled = false;
+    enhanceBtn.textContent = "Enhance Prompt";
+    enhanceBtn.removeAttribute("aria-busy");
+  }
+});
+
+useEnhancedBtn.addEventListener("click", () => {
+  if (_lastEnhanced) {
+    INPUTS.prompt.value = _lastEnhanced;
+    _enhancedUsed = true;
+  }
+  enhancedPreview.hidden = true;
+  clearError();
+});
+
+dismissEnhancedBtn.addEventListener("click", () => {
+  enhancedPreview.hidden = true;
+  _lastEnhanced = null;
+  clearError();
 });
 
 button.addEventListener("click", generate);

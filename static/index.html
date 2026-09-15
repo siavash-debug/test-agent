@@ -18,6 +18,17 @@
         <textarea id="prompt" rows="3">a futuristic city at sunset</textarea>
       </label>
 
+      <button id="enhance" type="button">Enhance Prompt</button>
+
+      <div id="enhanced-preview" class="enhanced-preview" hidden aria-live="polite">
+        <div class="enhanced-label">Enhanced Prompt</div>
+        <div id="enhanced-text" class="enhanced-text"></div>
+        <div class="enhanced-actions">
+          <button id="use-enhanced" type="button">Use Enhanced</button>
+          <button id="dismiss-enhanced" type="button">Dismiss</button>
+        </div>
+      </div>
+
       <label for="negative">Negative prompt
         <textarea id="negative" rows="2">blurry, low quality, distorted, text, watermark</textarea>
       </label>

@@ -21,6 +21,9 @@ huggingface_hub==1.31.0
 numpy==2.4.6
 pillow==12.3.0
 
+# --- Prompt enhancement (optional) ---
+groq==1.7.0
+
 # --- transitive dependencies (pinned by pip freeze for full reproducibility) ---
 annotated-doc==0.0.5
 anyio==4.15.1
