@@ -37,6 +37,7 @@ previewEl.parentElement.insertBefore(warningEl, previewEl.nextSibling);
 const BUTTON_LABEL = "Generate";
 const PROGRESS_TIMEOUT_MS = 650000;
 let busy = false;              // single in-flight request guard
+let _genStart = null;          // elapsed generation timer start (Date.now())
 const history = [];            // session-only, newest first
 
 const PRESET_VALUES = {
@@ -121,15 +122,21 @@ async function _pollProgress() {
     const data = await response.json();
     if (!data || !data.active) {
       progressEl.hidden = true;
+      progressEl.setAttribute("aria-valuenow", "0");
       return;
     }
     const current = Math.min(data.current_step, data.total_steps);
     const total = data.total_steps || 1;
     const pct = Math.min(100, Math.round((current / total) * 100));
-    progressEl.innerHTML =
-      "Generating... Step " + current + "/" + total +
+    let html = "Generating... Step " + current + "/" + total +
       ' <span class="progress-bar"><span class="progress-fill" style="width:'
       + pct + '%"></span></span>' + pct + "%";
+    if (_genStart) {
+      const elapsed = Math.floor((Date.now() - _genStart) / 1000);
+      html += ' · ' + elapsed + 's elapsed';
+    }
+    progressEl.innerHTML = html;
+    progressEl.setAttribute("aria-valuenow", String(pct));
   } catch {
     // Progress polling best-effort.
   }
@@ -180,6 +187,7 @@ function renderPreview(image, settings, totalTime) {
   meta.className = "meta";
   meta.append(
     metaChip("seed", String(image.seed)),
+    metaChip("Negative", settings.negative_prompt || "none"),
     metaChip("time", totalTime + "s"),
     metaChip("size", settings.width + "x" + settings.height),
     metaChip("steps", String(settings.steps)),
@@ -402,6 +410,7 @@ async function generate() {
 
   setBusy(true);
   setStatus("Generating...", "working");
+  _genStart = Date.now();
   startProgressPolling();
 
   const controller = new AbortController();
@@ -431,6 +440,12 @@ async function generate() {
       showShutdownError();
       return;
     }
+    if (response.status === 409) {
+      showError("Generation already in progress. Please wait for the current generation to finish.");
+      setStatus("Error", "error");
+      button.focus();
+      return;
+    }
     if (!response.ok || !data || data.success !== true) {
       const message = (data && data.error) || ("Request failed (HTTP " + response.status + ").");
       throw new Error(message);
@@ -457,6 +472,7 @@ async function generate() {
     button.focus();
   } finally {
     stopProgressPolling();
+    _genStart = null;
     setBusy(false);
   }
 }

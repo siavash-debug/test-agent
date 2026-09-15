@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>Local&nbsp;Text-to-Image</h1>
-    <span id="status" class="status ready">Ready</span>
+    <span id="status" class="status ready" aria-live="polite">Ready</span>
   </header>
 
   <main>
@@ -78,7 +78,7 @@
         <p class="placeholder">No image yet — press Generate.</p>
       </div>
       <div id="result-info" class="result-info"></div>
-      <div id="progress" class="progress" hidden></div>
+      <div id="progress" class="progress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Image generation progress"></div>
       <div id="error" class="error" role="alert" hidden></div>
     </section>
 
