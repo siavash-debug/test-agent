@@ -1,0 +1,75 @@
+{
+  "config": {
+    "engine_version": "v0.9.0",
+    "git_commit": "9612cf4",
+    "model": "stable-diffusion-v1-5 (fp16)",
+    "device": "cuda",
+    "torch_version": "2.7.1+cu118",
+    "cuda_available": true,
+    "dtype": "torch.float16",
+    "scheduler": "pndm",
+    "steps": 25,
+    "guidance": 7.5,
+    "width": 512,
+    "height": 512,
+    "seed_start": 42,
+    "attention_slicing": true,
+    "safety_checker": null
+  },
+  "results": [
+    {
+      "id": "benchmark-portrait-001",
+      "category": "portrait",
+      "prompt": "A portrait photo of a young woman with natural lighting, soft shadows, and shallow depth of field, looking directly at the camera",
+      "negative_prompt": "blurry, deformed, ugly, bad anatomy, extra limbs, low quality, watermark, text",
+      "filename": "20260915-140050.png",
+      "seed": 42,
+      "time_seconds": 23.41
+    },
+    {
+      "id": "benchmark-landscape-001",
+      "category": "landscape",
+      "prompt": "A wide landscape photograph of mountains during golden hour with a reflective lake in the foreground and dramatic clouds",
+      "negative_prompt": "blurry, deformed, ugly, low quality, watermark, text, oversaturated",
+      "filename": "20260915-140113.png",
+      "seed": 43,
+      "time_seconds": 23.33
+    },
+    {
+      "id": "benchmark-architecture-001",
+      "category": "architecture",
+      "prompt": "A photograph of a modern glass building with clean geometric lines, reflecting a blue sky with scattered clouds, shot from ground level",
+      "negative_prompt": "blurry, deformed, ugly, low quality, watermark, text, distorted perspective",
+      "filename": "20260915-140137.png",
+      "seed": 44,
+      "time_seconds": 23.62
+    },
+    {
+      "id": "benchmark-product-001",
+      "category": "product",
+      "prompt": "A studio product photograph of a ceramic coffee mug on a wooden table with soft natural window light and a neutral background",
+      "negative_prompt": "blurry, deformed, ugly, low quality, watermark, text, harsh shadows",
+      "filename": "20260915-140201.png",
+      "seed": 45,
+      "time_seconds": 23.64
+    },
+    {
+      "id": "benchmark-character-001",
+      "category": "character",
+      "prompt": "A fantasy character illustration of an elderly wizard with a long white beard, wearing embroidered robes and holding a wooden staff",
+      "negative_prompt": "blurry, deformed, ugly, bad anatomy, extra limbs, low quality, watermark, text",
+      "filename": "20260915-140224.png",
+      "seed": 46,
+      "time_seconds": 23.73
+    },
+    {
+      "id": "benchmark-cinematic_scene-001",
+      "category": "cinematic_scene",
+      "prompt": "A cinematic wide shot of a lone traveler walking through a misty forest trail at dawn, volumetric light rays through the canopy",
+      "negative_prompt": "blurry, deformed, ugly, low quality, watermark, text, oversaturated",
+      "filename": "20260915-140248.png",
+      "seed": 47,
+      "time_seconds": 23.85
+    }
+  ]
+}

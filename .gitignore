@@ -10,6 +10,7 @@ __pycache__/
 
 # Generated images
 outputs/
+/benchmark/runs/
 
 # Downloaded model weights (re-create with download_model.py)
 models/

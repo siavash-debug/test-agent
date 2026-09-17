@@ -1,0 +1,330 @@
+{
+  "benchmark_id": "v0.9.0-steps-20260915-165251",
+  "engine_version": "v0.9.0",
+  "git_commit": "9612cf4",
+  "timestamp": "2026-09-15T16:52:51.375276",
+  "model": "stable-diffusion-1.5-fp16",
+  "scheduler": "pndm",
+  "device": "GTX 1060 6GB (CUDA)",
+  "steps_configs": [
+    8,
+    15,
+    25,
+    35,
+    50
+  ],
+  "guidance": 7.5,
+  "width": 512,
+  "height": 512,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "prompt_suite_version": "1.0",
+  "results": [
+    {
+      "steps": 8,
+      "prompt_id": "benchmark-portrait-001",
+      "category": "portrait",
+      "seed": 42,
+      "time_seconds": 9.66,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps8-benchmark-portrait-001-20260915-163512.png",
+      "status": "OK"
+    },
+    {
+      "steps": 8,
+      "prompt_id": "benchmark-landscape-001",
+      "category": "landscape",
+      "seed": 43,
+      "time_seconds": 8.47,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps8-benchmark-landscape-001-20260915-163520.png",
+      "status": "OK"
+    },
+    {
+      "steps": 8,
+      "prompt_id": "benchmark-architecture-001",
+      "category": "architecture",
+      "seed": 44,
+      "time_seconds": 8.55,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps8-benchmark-architecture-001-20260915-163529.png",
+      "status": "OK"
+    },
+    {
+      "steps": 8,
+      "prompt_id": "benchmark-product-001",
+      "category": "product",
+      "seed": 45,
+      "time_seconds": 8.58,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps8-benchmark-product-001-20260915-163538.png",
+      "status": "OK"
+    },
+    {
+      "steps": 8,
+      "prompt_id": "benchmark-character-001",
+      "category": "character",
+      "seed": 46,
+      "time_seconds": 8.56,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps8-benchmark-character-001-20260915-163546.png",
+      "status": "OK"
+    },
+    {
+      "steps": 8,
+      "prompt_id": "benchmark-cinematic_scene-001",
+      "category": "cinematic_scene",
+      "seed": 47,
+      "time_seconds": 8.62,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps8-benchmark-cinematic_scene-001-20260915-163555.png",
+      "status": "OK"
+    },
+    {
+      "steps": 15,
+      "prompt_id": "benchmark-portrait-001",
+      "category": "portrait",
+      "seed": 42,
+      "time_seconds": 14.83,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps15-benchmark-portrait-001-20260915-163610.png",
+      "status": "OK"
+    },
+    {
+      "steps": 15,
+      "prompt_id": "benchmark-landscape-001",
+      "category": "landscape",
+      "seed": 43,
+      "time_seconds": 14.81,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps15-benchmark-landscape-001-20260915-163625.png",
+      "status": "OK"
+    },
+    {
+      "steps": 15,
+      "prompt_id": "benchmark-architecture-001",
+      "category": "architecture",
+      "seed": 44,
+      "time_seconds": 14.86,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps15-benchmark-architecture-001-20260915-163640.png",
+      "status": "OK"
+    },
+    {
+      "steps": 15,
+      "prompt_id": "benchmark-product-001",
+      "category": "product",
+      "seed": 45,
+      "time_seconds": 14.89,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps15-benchmark-product-001-20260915-163655.png",
+      "status": "OK"
+    },
+    {
+      "steps": 15,
+      "prompt_id": "benchmark-character-001",
+      "category": "character",
+      "seed": 46,
+      "time_seconds": 14.92,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps15-benchmark-character-001-20260915-163710.png",
+      "status": "OK"
+    },
+    {
+      "steps": 15,
+      "prompt_id": "benchmark-cinematic_scene-001",
+      "category": "cinematic_scene",
+      "seed": 47,
+      "time_seconds": 14.93,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps15-benchmark-cinematic_scene-001-20260915-163725.png",
+      "status": "OK"
+    },
+    {
+      "steps": 25,
+      "prompt_id": "benchmark-portrait-001",
+      "category": "portrait",
+      "seed": 42,
+      "time_seconds": 23.76,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps25-benchmark-portrait-001-20260915-163748.png",
+      "status": "OK"
+    },
+    {
+      "steps": 25,
+      "prompt_id": "benchmark-landscape-001",
+      "category": "landscape",
+      "seed": 43,
+      "time_seconds": 25.53,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps25-benchmark-landscape-001-20260915-163814.png",
+      "status": "OK"
+    },
+    {
+      "steps": 25,
+      "prompt_id": "benchmark-architecture-001",
+      "category": "architecture",
+      "seed": 44,
+      "time_seconds": 27.22,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps25-benchmark-architecture-001-20260915-163841.png",
+      "status": "OK"
+    },
+    {
+      "steps": 25,
+      "prompt_id": "benchmark-product-001",
+      "category": "product",
+      "seed": 45,
+      "time_seconds": 28.42,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps25-benchmark-product-001-20260915-163910.png",
+      "status": "OK"
+    },
+    {
+      "steps": 25,
+      "prompt_id": "benchmark-character-001",
+      "category": "character",
+      "seed": 46,
+      "time_seconds": 30.44,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps25-benchmark-character-001-20260915-163940.png",
+      "status": "OK"
+    },
+    {
+      "steps": 25,
+      "prompt_id": "benchmark-cinematic_scene-001",
+      "category": "cinematic_scene",
+      "seed": 47,
+      "time_seconds": 32.7,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps25-benchmark-cinematic_scene-001-20260915-164013.png",
+      "status": "OK"
+    },
+    {
+      "steps": 35,
+      "prompt_id": "benchmark-portrait-001",
+      "category": "portrait",
+      "seed": 42,
+      "time_seconds": 47.99,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps35-benchmark-portrait-001-20260915-164101.png",
+      "status": "OK"
+    },
+    {
+      "steps": 35,
+      "prompt_id": "benchmark-landscape-001",
+      "category": "landscape",
+      "seed": 43,
+      "time_seconds": 59.39,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps35-benchmark-landscape-001-20260915-164200.png",
+      "status": "OK"
+    },
+    {
+      "steps": 35,
+      "prompt_id": "benchmark-architecture-001",
+      "category": "architecture",
+      "seed": 44,
+      "time_seconds": 52.34,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps35-benchmark-architecture-001-20260915-164253.png",
+      "status": "OK"
+    },
+    {
+      "steps": 35,
+      "prompt_id": "benchmark-product-001",
+      "category": "product",
+      "seed": 45,
+      "time_seconds": 52.22,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps35-benchmark-product-001-20260915-164345.png",
+      "status": "OK"
+    },
+    {
+      "steps": 35,
+      "prompt_id": "benchmark-character-001",
+      "category": "character",
+      "seed": 46,
+      "time_seconds": 52.36,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps35-benchmark-character-001-20260915-164438.png",
+      "status": "OK"
+    },
+    {
+      "steps": 35,
+      "prompt_id": "benchmark-cinematic_scene-001",
+      "category": "cinematic_scene",
+      "seed": 47,
+      "time_seconds": 52.29,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps35-benchmark-cinematic_scene-001-20260915-164530.png",
+      "status": "OK"
+    },
+    {
+      "steps": 50,
+      "prompt_id": "benchmark-portrait-001",
+      "category": "portrait",
+      "seed": 42,
+      "time_seconds": 73.49,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps50-benchmark-portrait-001-20260915-164643.png",
+      "status": "OK"
+    },
+    {
+      "steps": 50,
+      "prompt_id": "benchmark-landscape-001",
+      "category": "landscape",
+      "seed": 43,
+      "time_seconds": 73.3,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps50-benchmark-landscape-001-20260915-164757.png",
+      "status": "OK"
+    },
+    {
+      "steps": 50,
+      "prompt_id": "benchmark-architecture-001",
+      "category": "architecture",
+      "seed": 44,
+      "time_seconds": 73.29,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps50-benchmark-architecture-001-20260915-164910.png",
+      "status": "OK"
+    },
+    {
+      "steps": 50,
+      "prompt_id": "benchmark-product-001",
+      "category": "product",
+      "seed": 45,
+      "time_seconds": 73.37,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps50-benchmark-product-001-20260915-165024.png",
+      "status": "OK"
+    },
+    {
+      "steps": 50,
+      "prompt_id": "benchmark-character-001",
+      "category": "character",
+      "seed": 46,
+      "time_seconds": 73.58,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps50-benchmark-character-001-20260915-165137.png",
+      "status": "OK"
+    },
+    {
+      "steps": 50,
+      "prompt_id": "benchmark-cinematic_scene-001",
+      "category": "cinematic_scene",
+      "seed": 47,
+      "time_seconds": 73.57,
+      "peak_vram_mb": 2938.0,
+      "filename": "steps50-benchmark-cinematic_scene-001-20260915-165251.png",
+      "status": "OK"
+    }
+  ]
+}

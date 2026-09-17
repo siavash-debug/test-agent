@@ -1,0 +1,180 @@
+{
+  "methodology_version": 2,
+  "benchmark_id": "v0.9.0-benchmark-v2-baseline-20260915-233333",
+  "engine_version": "v0.9.0",
+  "git_commit": "9612cf4",
+  "timestamp": "2026-09-15T23:41:07.639765",
+  "model": "stable-diffusion-1.5-fp16",
+  "scheduler": "pndm",
+  "steps": 25,
+  "guidance": 7.5,
+  "width": 512,
+  "height": 512,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "prompt_suite_version": "1.0",
+  "warmup_count": 2,
+  "cooldown_seconds": 0,
+  "device": "GTX 1060 6GB (CUDA)",
+  "configs": [
+    "baseline"
+  ],
+  "temperature_before_c": 41,
+  "temperature_pre_generation_c": 77,
+  "temperature_post_generation_c": 77,
+  "pipeline": {
+    "source": "generate.py (production pipeline)",
+    "dtype": "torch.float16",
+    "attention_slicing": true,
+    "safety_checker": null
+  },
+  "timing_methodology": {
+    "warmup_excluded": true,
+    "cuda_sync_before_timed": true,
+    "cuda_sync_after_generation": true,
+    "image_save_excluded": true,
+    "report_writing_excluded": true
+  },
+  "results": {
+    "baseline": [
+      {
+        "prompt_id": "benchmark-portrait-001",
+        "category": "portrait",
+        "seed": 42,
+        "steps": 25,
+        "guidance": 7.5,
+        "generation_time_seconds": 26.77,
+        "peak_vram_mb": 2938.0,
+        "peak_reserved_vram_mb": 4028.0,
+        "temperature_before_c": 77,
+        "temperature_pre_generation_c": 77,
+        "temperature_post_generation_c": 77,
+        "filename": "v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-portrait-001-20260915-233853.png",
+        "image_path": "C:\\Users\\theex\\Documents\\Projects\\test-agent\\benchmark\\runs\\v0.9.0-benchmark-v2-baseline-20260915-233333\\baseline\\v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-portrait-001-20260915-233853.png",
+        "status": "OK"
+      },
+      {
+        "prompt_id": "benchmark-landscape-001",
+        "category": "landscape",
+        "seed": 43,
+        "steps": 25,
+        "guidance": 7.5,
+        "generation_time_seconds": 26.47,
+        "peak_vram_mb": 2938.0,
+        "peak_reserved_vram_mb": 4028.0,
+        "temperature_before_c": 77,
+        "temperature_pre_generation_c": 77,
+        "temperature_post_generation_c": 77,
+        "filename": "v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-landscape-001-20260915-233919.png",
+        "image_path": "C:\\Users\\theex\\Documents\\Projects\\test-agent\\benchmark\\runs\\v0.9.0-benchmark-v2-baseline-20260915-233333\\baseline\\v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-landscape-001-20260915-233919.png",
+        "status": "OK"
+      },
+      {
+        "prompt_id": "benchmark-architecture-001",
+        "category": "architecture",
+        "seed": 44,
+        "steps": 25,
+        "guidance": 7.5,
+        "generation_time_seconds": 26.51,
+        "peak_vram_mb": 2938.0,
+        "peak_reserved_vram_mb": 4028.0,
+        "temperature_before_c": 77,
+        "temperature_pre_generation_c": 77,
+        "temperature_post_generation_c": 77,
+        "filename": "v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-architecture-001-20260915-233946.png",
+        "image_path": "C:\\Users\\theex\\Documents\\Projects\\test-agent\\benchmark\\runs\\v0.9.0-benchmark-v2-baseline-20260915-233333\\baseline\\v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-architecture-001-20260915-233946.png",
+        "status": "OK"
+      },
+      {
+        "prompt_id": "benchmark-product-001",
+        "category": "product",
+        "seed": 45,
+        "steps": 25,
+        "guidance": 7.5,
+        "generation_time_seconds": 26.6,
+        "peak_vram_mb": 2938.0,
+        "peak_reserved_vram_mb": 4028.0,
+        "temperature_before_c": 77,
+        "temperature_pre_generation_c": 77,
+        "temperature_post_generation_c": 77,
+        "filename": "v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-product-001-20260915-234013.png",
+        "image_path": "C:\\Users\\theex\\Documents\\Projects\\test-agent\\benchmark\\runs\\v0.9.0-benchmark-v2-baseline-20260915-233333\\baseline\\v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-product-001-20260915-234013.png",
+        "status": "OK"
+      },
+      {
+        "prompt_id": "benchmark-character-001",
+        "category": "character",
+        "seed": 46,
+        "steps": 25,
+        "guidance": 7.5,
+        "generation_time_seconds": 26.56,
+        "peak_vram_mb": 2938.0,
+        "peak_reserved_vram_mb": 4028.0,
+        "temperature_before_c": 77,
+        "temperature_pre_generation_c": 77,
+        "temperature_post_generation_c": 77,
+        "filename": "v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-character-001-20260915-234040.png",
+        "image_path": "C:\\Users\\theex\\Documents\\Projects\\test-agent\\benchmark\\runs\\v0.9.0-benchmark-v2-baseline-20260915-233333\\baseline\\v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-character-001-20260915-234040.png",
+        "status": "OK"
+      },
+      {
+        "prompt_id": "benchmark-cinematic_scene-001",
+        "category": "cinematic_scene",
+        "seed": 47,
+        "steps": 25,
+        "guidance": 7.5,
+        "generation_time_seconds": 26.6,
+        "peak_vram_mb": 2938.0,
+        "peak_reserved_vram_mb": 4028.0,
+        "temperature_before_c": 77,
+        "temperature_pre_generation_c": 77,
+        "temperature_post_generation_c": 77,
+        "filename": "v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-cinematic_scene-001-20260915-234107.png",
+        "image_path": "C:\\Users\\theex\\Documents\\Projects\\test-agent\\benchmark\\runs\\v0.9.0-benchmark-v2-baseline-20260915-233333\\baseline\\v0.9.0-benchmark-v2-baseline-20260915-233333-baseline-benchmark-cinematic_scene-001-20260915-234107.png",
+        "status": "OK"
+      }
+    ]
+  },
+  "human_evaluation": {
+    "evaluator_count": 1,
+    "evaluations": [
+      {
+        "benchmark_id": "benchmark-portrait-001",
+        "human_overall": 4,
+        "human_note": "The eyes have a visible problem."
+      },
+      {
+        "benchmark_id": "benchmark-landscape-001",
+        "human_overall": 5,
+        "human_note": "The connection between the land and water is not very good."
+      },
+      {
+        "benchmark_id": "benchmark-architecture-001",
+        "human_overall": 3,
+        "human_note": "The top of the building has a visible structural/rendering issue and is not formed correctly."
+      },
+      {
+        "benchmark_id": "benchmark-product-001",
+        "human_overall": 4,
+        "human_note": "The upper part of the mug looks softened/melted and the mug shape is incorrect."
+      },
+      {
+        "benchmark_id": "benchmark-character-001",
+        "human_overall": 3,
+        "human_note": "The hands are severely malformed/monstrous and the beard visually connects to the belt."
+      },
+      {
+        "benchmark_id": "benchmark-cinematic_scene-001",
+        "human_overall": 5,
+        "human_note": "The end of the path has poor lighting and lacks fine details."
+      }
+    ],
+    "human_overall_average": 4.0
+  }
+}

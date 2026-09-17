@@ -1,0 +1,100 @@
+{
+  "benchmark_id": "v0.9.0-dpmpp-ab-001",
+  "engine_version": "v0.9.0",
+  "git_commit": "9612cf4",
+  "timestamp": "2026-09-15T14:30:00Z",
+  "model": "stable-diffusion-1.5-fp16",
+  "device": "cuda",
+  "scheduler_a": "pndm",
+  "scheduler_b": "dpmpp_2m_karras",
+  "steps": 25,
+  "guidance": 7.5,
+  "width": 512,
+  "height": 512,
+  "seed_start": 42,
+  "prompt_suite_version": "1.0",
+  "pndm": {
+    "total_seconds": 141.09,
+    "peak_vram_mb": 2938,
+    "per_prompt": [
+      {
+        "id": "benchmark-portrait-001",
+        "time": 23.02,
+        "seed": 42,
+        "filename": "20260915-151309.png"
+      },
+      {
+        "id": "benchmark-landscape-001",
+        "time": 23.36,
+        "seed": 43,
+        "filename": "20260915-151332.png"
+      },
+      {
+        "id": "benchmark-architecture-001",
+        "time": 23.55,
+        "seed": 44,
+        "filename": "20260915-151356.png"
+      },
+      {
+        "id": "benchmark-product-001",
+        "time": 23.65,
+        "seed": 45,
+        "filename": "20260915-151419.png"
+      },
+      {
+        "id": "benchmark-character-001",
+        "time": 23.75,
+        "seed": 46,
+        "filename": "20260915-151443.png"
+      },
+      {
+        "id": "benchmark-cinematic_scene-001",
+        "time": 23.76,
+        "seed": 47,
+        "filename": "20260915-151507.png"
+      }
+    ]
+  },
+  "dpmpp_2m_karras": {
+    "total_seconds": 144.94,
+    "peak_vram_mb": 2938,
+    "per_prompt": [
+      {
+        "id": "benchmark-portrait-001",
+        "time": 23.03,
+        "seed": 42,
+        "filename": "20260915-151530.png"
+      },
+      {
+        "id": "benchmark-landscape-001",
+        "time": 22.98,
+        "seed": 43,
+        "filename": "20260915-151553.png"
+      },
+      {
+        "id": "benchmark-architecture-001",
+        "time": 22.91,
+        "seed": 44,
+        "filename": "20260915-151616.png"
+      },
+      {
+        "id": "benchmark-product-001",
+        "time": 24.84,
+        "seed": 45,
+        "filename": "20260915-151641.png"
+      },
+      {
+        "id": "benchmark-character-001",
+        "time": 25.59,
+        "seed": 46,
+        "filename": "20260915-151706.png"
+      },
+      {
+        "id": "benchmark-cinematic_scene-001",
+        "time": 25.59,
+        "seed": 47,
+        "filename": "20260915-151732.png"
+      }
+    ]
+  }
+}
