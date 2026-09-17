@@ -21,8 +21,10 @@ Optional flags:
                       the images can be reproduced later)
     --steps N         denoising steps (default 25)
     --guidance F      classifier-free guidance scale (default 7.5)
-    --scheduler {pndm,lcm}  scheduler (default: pndm; lcm is faster but
-                      may reduce quality below 8 steps)
+    --scheduler {pndm,lcm,dpmpp_2m_karras}
+                      scheduler (default: pndm; lcm is faster but may reduce
+                      quality below 8 steps; dpmpp_2m_karras is DPM++ 2M
+                      Karras)
     --preset {quality,balanced,fast}  preset (overrides scheduler and steps)
     --width N         image width in pixels (default 512). Must be 64-768 and
                       divisible by 8 (512, 640, 768, ...).
@@ -41,7 +43,7 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-from diffusers import StableDiffusionPipeline, LCMScheduler
+from diffusers import DPMSolverMultistepScheduler, StableDiffusionPipeline, LCMScheduler
 from PIL.PngImagePlugin import PngInfo
 
 ROOT = Path(__file__).resolve().parent
@@ -53,7 +55,8 @@ MODEL_NAME = "stable-diffusion-v1-5 (fp16)"
 
 # Supported schedulers. PNDM is the default; LCM provides faster inference
 # at the cost of potential quality tradeoffs at very low step counts.
-SCHEDULERS = ("pndm", "lcm")
+# DPM++ 2M Karras is built from the model's own scheduler config.
+SCHEDULERS = ("pndm", "lcm", "dpmpp_2m_karras")
 
 # Generation presets: each maps to a (scheduler, steps) pair.
 PRESETS = {
@@ -324,6 +327,18 @@ def generate_images(prompt: str, *, negative_prompt: str = "",
             steps_offset=0,
         )
         print(f"[generate] scheduler: lcm", flush=True)
+    elif scheduler == "dpmpp_2m_karras":
+        # Configuration-derived: reuse the model's own scheduler config
+        # (betas, train timesteps, prediction type) and override only the
+        # DPM++-specific settings. from_config drops keys the DPM++
+        # constructor does not accept (e.g. skip_prk_steps).
+        pipe.scheduler = DPMSolverMultistepScheduler.from_config(
+            original_scheduler.config,
+            algorithm_type="dpmsolver++",
+            use_karras_sigmas=True,
+            steps_offset=0,
+        )
+        print(f"[generate] scheduler: dpmpp_2m_karras", flush=True)
 
     try:
         for i in range(count):

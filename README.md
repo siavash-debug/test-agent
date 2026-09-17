@@ -92,7 +92,7 @@ Options:
 | `--seed N` | -1 | Reproducible seed (`-1` = random) |
 | `--steps N` | 25 | Denoising steps |
 | `--guidance F` | 7.5 | Classifier-free guidance scale |
-| `--scheduler {pndm,lcm}` | pndm | Scheduler (see below) |
+| `--scheduler {pndm,lcm,dpmpp_2m_karras}` | pndm | Scheduler (see below) |
 | `--preset {quality,balanced,fast}` | none | Preset (overrides scheduler and steps) |
 | `--width N` | 512 | Multiple of 8, 64–768 |
 | `--height N` | 512 | Multiple of 8, 64–768 |
@@ -118,6 +118,7 @@ If no preset is provided, the existing behavior is preserved
 |---|---|
 | `pndm` | Default. Standard PNDM scheduler. |
 | `lcm` | Optional fast mode using LCMScheduler with standard SD 1.5 weights. |
+| `dpmpp_2m_karras` | DPM++ 2M Karras (`DPMSolverMultistepScheduler`, `dpmsolver++`, Karras sigmas), built from the model's own scheduler config. |
 
 **LCM notes:**
 

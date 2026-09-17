@@ -200,8 +200,8 @@ def validate_payload(payload):
     if not isinstance(scheduler, str):
         raise ValueError("scheduler must be a string")
     scheduler = scheduler.lower()
-    if scheduler not in ("pndm", "lcm"):
-        raise ValueError("scheduler must be 'pndm' or 'lcm'")
+    if scheduler not in ("pndm", "lcm", "dpmpp_2m_karras"):
+        raise ValueError("scheduler must be 'pndm', 'lcm', or 'dpmpp_2m_karras'")
 
     preset = payload.get("preset")
     if preset is not None:
